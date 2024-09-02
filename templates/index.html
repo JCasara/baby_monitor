@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Detection Stream</title>
+</head>
+<body>
+    <h1>Face Detection Stream</h1>
+    <p>Current Threshold: {{ current_threshold }}</p>
+    
+    <form action="/update_threshold" method="POST">
+        <label for="threshold">Update Threshold:</label>
+        <input type="number" id="threshold" name="threshold" value="{{ current_threshold }}" min="1" max="1000">
+        <button type="submit">Update</button>
+    </form>
+
+    <img src="{{ url_for('video_feed') }}" width="640" height="480" />
+
+</body>
+</html>

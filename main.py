@@ -1,11 +1,26 @@
 import threading
 import time
-from video_face_detector import VideoFaceDetector
-from video_stream_server import VideoStreamServer
+
+import yaml
+
+from app.video_face_detector import VideoFaceDetector
+from app.video_stream_server import VideoStreamServer
+
+
+def load_config():
+    with open("config/config.yaml", "r") as f:
+        return yaml.safe_load(f)
 
 if __name__ == "__main__":
-    frame_rate = 30  # Desired frame rate
-    detector = VideoFaceDetector(scale_factor=0.5, buffer_size=10, frame_rate=frame_rate)
+
+    config = load_config()
+    # server_config = config["server"]
+    video_config = config["video"]
+    # threshold_config = config["threshold"]
+
+    detector = VideoFaceDetector(scale_factor=video_config['scale_factor'],
+                                 buffer_size=video_config['buffer_size'],
+                                 frame_rate=video_config["frame_rate"])
     server = VideoStreamServer(face_detector=detector)
 
     # Start a thread for frame updating
@@ -25,4 +40,3 @@ if __name__ == "__main__":
         server.run()
     finally:
         detector.release_resources()
-

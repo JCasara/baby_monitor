@@ -3,7 +3,7 @@ import face_recognition
 import time
 from collections import deque
 import threading
-from detection_state import StateManager, DetectionState
+from app.detection_state import StateManager, DetectionState
 
 class VideoFaceDetector:
     def __init__(self, scale_factor=1.0, buffer_size=1000, frame_rate=30):
