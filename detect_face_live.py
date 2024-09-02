@@ -7,7 +7,7 @@ import numpy as np
 from collections import deque
 
 class VideoFaceDetector:
-    def __init__(self, scale_factor=0.5, buffer_size=10):
+    def __init__(self, scale_factor=0.5, buffer_size=10, frame_rate=30):
         # Initialize the webcam
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
@@ -20,6 +20,8 @@ class VideoFaceDetector:
         self.frame_buffer = deque(maxlen=buffer_size)  # Frame buffer
         self.lock = threading.Lock()
         self.running = True
+        self.frame_rate = frame_rate
+        self.frame_interval = 1.0 / frame_rate  # Calculate frame interval
 
     def _resize_frame(self, frame):
         """Resize the frame to improve processing speed."""
@@ -74,8 +76,7 @@ class VideoFaceDetector:
         with self.lock:
             if self.running:
                 # Encode frame and add to buffer
-                encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 50]
-                ret, buffer = cv2.imencode('.jpg', frame, encode_param)
+                ret, buffer = cv2.imencode('.jpg', frame)
                 if ret:
                     self.frame_buffer.append(buffer.tobytes())
 
@@ -117,14 +118,18 @@ class VideoStreamServer:
         self.app.run(host='0.0.0.0', port=8080, debug=False, threaded=True, use_reloader=False)
 
 if __name__ == "__main__":
-    detector = VideoFaceDetector(scale_factor=0.5, buffer_size=100)
+    frame_rate = 30  # Desired frame rate
+    detector = VideoFaceDetector(scale_factor=1, buffer_size=1000, frame_rate=frame_rate)
     server = VideoStreamServer(face_detector=detector)
 
     # Start a thread for frame updating
     def update_frames():
         while detector.running:
+            start_time = time.time()
             detector.update_frame()
-            time.sleep(0.1)  # Adjust as needed
+            elapsed_time = time.time() - start_time
+            sleep_time = max(0, detector.frame_interval - elapsed_time)
+            time.sleep(sleep_time)
 
     frame_thread = threading.Thread(target=update_frames)
     frame_thread.daemon = True
