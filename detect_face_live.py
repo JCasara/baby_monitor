@@ -1,80 +1,96 @@
 import cv2
 import face_recognition
+import threading
 import time
+from flask import Flask, Response
 
 class VideoFaceDetector:
     def __init__(self, scale_factor=0.5):
-        # Initialize the webcam
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
             raise Exception("Error: Could not open webcam.")
         
         self.scale_factor = scale_factor
-        self.fps = 0
-        self.frame_count = 0
-        self.start_time = time.time()
+        self.output_frame = None
+        self.lock = threading.Lock()
+        self.running = True
+        self.detection_thread = threading.Thread(target=self._run)
+        self.detection_thread.start()
     
     def _resize_frame(self, frame):
-        """Resize the frame to improve processing speed."""
         return cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
     
     def _detect_faces(self, rgb_frame):
-        """Detect faces in the frame using face_recognition."""
         face_locations = face_recognition.face_locations(rgb_frame)
-        # Scale back bounding boxes to the original frame size
         return [(int(top / self.scale_factor), int(right / self.scale_factor),
                  int(bottom / self.scale_factor), int(left / self.scale_factor))
                 for (top, right, bottom, left) in face_locations]
     
-    def _calculate_fps(self):
-        """Calculate and update the FPS."""
-        self.frame_count += 1
-        elapsed_time = time.time() - self.start_time
-        if elapsed_time > 0:
-            self.fps = self.frame_count / elapsed_time
-    
     def _draw_face_boxes(self, frame, face_locations):
-        """Draw bounding boxes around detected faces."""
         for (top, right, bottom, left) in face_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
             cv2.putText(frame, 'Face', (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
     
-    def _display_fps(self, frame):
-        """Display FPS on the frame."""
-        fps_text = f"FPS: {self.fps:.2f}"
-        cv2.putText(frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-    
-    def run(self):
-        """Run the video stream and face detection."""
-        while True:
+    def _run(self):
+        while self.running:
             ret, frame = self.video_capture.read()
             if not ret:
                 print("Error: Failed to capture image.")
-                break
+                continue
             
-            # Resize the frame
             small_frame = self._resize_frame(frame)
             rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-            
-            # Detect faces
             face_locations = self._detect_faces(rgb_small_frame)
-            
-            # Draw bounding boxes and FPS
             self._draw_face_boxes(frame, face_locations)
-            self._calculate_fps()
-            self._display_fps(frame)
             
-            # Show the frame
-            cv2.imshow('Video', frame)
-            
-            # Exit on 'q' key press
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        
-        # Release resources
+            with self.lock:
+                self.output_frame = frame.copy()
+    
+    def get_frame(self):
+        with self.lock:
+            if self.output_frame is None:
+                return None
+            ret, encoded_image = cv2.imencode(".jpg", self.output_frame)
+            if not ret:
+                return None
+            return encoded_image.tobytes()
+    
+    def stop(self):
+        self.running = False
         self.video_capture.release()
-        cv2.destroyAllWindows()
+
+class FlaskApp:
+    def __init__(self, detector):
+        self.detector = detector
+        self.app = Flask(__name__)
+        self._setup_routes()
+    
+    def _setup_routes(self):
+        @self.app.route("/video_feed")
+        def video_feed():
+            return Response(self.generate_stream(),
+                            mimetype="multipart/x-mixed-replace; boundary=frame")
+        
+        @self.app.route("/")
+        def index():
+            return "Video feed available at /video_feed"
+    
+    def generate_stream(self):
+        while self.detector.running:
+            frame = self.detector.get_frame()
+            if frame is None:
+                continue
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    
+    def run(self, host="0.0.0.0", port=8080):
+        try:
+            self.app.run(host=host, port=port, debug=False, threaded=True, use_reloader=False)
+        except KeyboardInterrupt:
+            self.detector.stop()
 
 if __name__ == "__main__":
     detector = VideoFaceDetector(scale_factor=0.5)
-    detector.run()
+    flask_app = FlaskApp(detector)
+    flask_app.run()
+
