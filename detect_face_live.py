@@ -22,6 +22,8 @@ class VideoFaceDetector:
         self.running = True
         self.frame_rate = frame_rate
         self.frame_interval = 1.0 / frame_rate  # Calculate frame interval
+        self.no_face_count = 0
+        self.max_no_face_count = 100
 
     def _resize_frame(self, frame):
         """Resize the frame to improve processing speed."""
@@ -44,9 +46,15 @@ class VideoFaceDetector:
     
     def _draw_face_boxes(self, frame, face_locations):
         """Draw bounding boxes around detected faces."""
-        for (top, right, bottom, left) in face_locations:
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-            cv2.putText(frame, 'Face', (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+        if face_locations:
+            self.no_face_count = 0
+            for (top, right, bottom, left) in face_locations:
+                cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+                cv2.putText(frame, 'Face', (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+        else:
+            self.no_face_count += 1
+            if self.no_face_count >= self.max_no_face_count:
+                cv2.putText(frame, 'Face not detected', (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
     
     def _display_fps(self, frame):
         """Display FPS on the frame."""
@@ -119,7 +127,7 @@ class VideoStreamServer:
 
 if __name__ == "__main__":
     frame_rate = 30  # Desired frame rate
-    detector = VideoFaceDetector(scale_factor=1, buffer_size=1000, frame_rate=frame_rate)
+    detector = VideoFaceDetector(scale_factor=0.5, buffer_size=10, frame_rate=frame_rate)
     server = VideoStreamServer(face_detector=detector)
 
     # Start a thread for frame updating
