@@ -16,9 +16,11 @@ if __name__ == "__main__":
     config = load_config()
     # server_config = config["server"]
     video_config = config["video"]
+    pushover_config = config["pushover"]
     # threshold_config = config["threshold"]
 
-    detector = VideoFaceDetector(scale_factor=video_config['scale_factor'],
+    detector = VideoFaceDetector(pushover_config=pushover_config,
+                                 scale_factor=video_config['scale_factor'],
                                  buffer_size=video_config['buffer_size'],
                                  frame_rate=video_config["frame_rate"])
     server = VideoStreamServer(face_detector=detector)
