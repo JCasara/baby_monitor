@@ -2,8 +2,9 @@ from flask import Flask, Response, redirect, render_template, request, url_for
 
 
 class VideoStreamServer:
-    def __init__(self, face_detector):
+    def __init__(self, server_config, face_detector):
         self.app = Flask(__name__, template_folder='../templates')
+        self.server_config = server_config
         self.face_detector = face_detector
         self.app.add_url_rule('/video_feed', 'video_feed', self.video_feed)
         self.app.add_url_rule('/', 'index', self.index)
@@ -38,4 +39,4 @@ class VideoStreamServer:
     
     def run(self):
         """Run the Flask server."""
-        self.app.run(host='0.0.0.0', port=8080, debug=False, threaded=True, use_reloader=False)
+        self.app.run(host=self.server_config['host'], port=self.server_config['port'], debug=False, threaded=True, use_reloader=False)

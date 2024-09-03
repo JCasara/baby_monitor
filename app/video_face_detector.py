@@ -6,27 +6,28 @@ import cv2
 import face_recognition
 import torch
 
-from app.detection_state import DetectionState, StateManager
+from app.detection_state import DetectionState
 
 
 class VideoFaceDetector:
-    def __init__(self, pushover_config, scale_factor=1.0, buffer_size=1000, frame_rate=30):
+    def __init__(self, video_config, state_manager):
         # Initialize the webcam
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
             raise Exception("Error: Could not open webcam.")
         
-        self.scale_factor = scale_factor
-        self.frame_buffer = deque(maxlen=buffer_size)  # Frame buffer
+        self.scale_factor = video_config.get('scale_factor')
+        self.buffer_size = video_config.get('buffer_size')
+        self.frame_rate = video_config.get("frame_rate")
+        self.frame_buffer = deque(maxlen=self.buffer_size)  # Frame buffer
         self.lock = threading.Lock()
         self.running = True
-        self.frame_rate = frame_rate
-        self.frame_interval = 1.0 / frame_rate  # Calculate frame interval
-        self.state_manager = StateManager(pushover_config=pushover_config)
+        self.frame_interval = 1.0 / self.frame_rate  # Calculate frame interval
+        self.state_manager = state_manager
         self.fps = 0
         self.frame_count = 0
         self.start_time = time.time()
-        self.person_model = model = torch.hub.load('ultralytics/yolov5', 'yolov5n')
+        self.person_model = torch.hub.load('ultralytics/yolov5', 'yolov5n')
         self.detection_interval = 100
         self.detection_counter = 0
         self.last_person_detected = False

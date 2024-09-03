@@ -2,9 +2,9 @@
 # Configuration settings for the application
 video:
   scale_factor: 0.5
-  buffer_size: 1000
+  buffer_size: 10
   frame_rate: 30
-  jpeg_quality: 80
+  jpeg_quality: 50
 
 threshold:
   detection_threshold: 100

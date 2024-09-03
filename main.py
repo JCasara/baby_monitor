@@ -1,10 +1,11 @@
 import threading
-import time
+# import time
 
 import yaml
 
 from app.video_face_detector import VideoFaceDetector
 from app.video_stream_server import VideoStreamServer
+from app.detection_state import StateManager
 
 
 def load_config():
@@ -14,25 +15,23 @@ def load_config():
 if __name__ == "__main__":
 
     config = load_config()
-    # server_config = config["server"]
     video_config = config["video"]
     pushover_config = config["pushover"]
-    # threshold_config = config["threshold"]
+    server_config = config["server"]
+    threshold_config = config["threshold"]
 
-    detector = VideoFaceDetector(pushover_config=pushover_config,
-                                 scale_factor=video_config['scale_factor'],
-                                 buffer_size=video_config['buffer_size'],
-                                 frame_rate=video_config["frame_rate"])
-    server = VideoStreamServer(face_detector=detector)
+    state_manager = StateManager(threshold_config=threshold_config,pushover_config=pushover_config)
+    detector = VideoFaceDetector(video_config=video_config, state_manager=state_manager) 
+    server = VideoStreamServer(server_config=server_config, face_detector=detector)
 
     # Start a thread for frame updating
     def update_frames():
         while detector.running:
-            start_time = time.time()
+            # start_time = time.time()
             detector.update_frame()
-            elapsed_time = time.time() - start_time
-            sleep_time = max(0, detector.frame_interval - elapsed_time)
-            time.sleep(sleep_time)
+            # elapsed_time = time.time() - start_time
+            # sleep_time = max(0, detector.frame_interval - elapsed_time)
+            # time.sleep(sleep_time)
 
     frame_thread = threading.Thread(target=update_frames)
     frame_thread.daemon = True
