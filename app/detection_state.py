@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-from app.push_notification import send_pushover_notification
+import requests
 
 
 class DetectionState(Enum):
@@ -18,12 +18,26 @@ class StateManager:
         self.max_no_face_count = threshold_config.get('detection_threshold')
         self.pushover_config = pushover_config
 
-    def _send_pushover_notification(self):
+    def send_pushover_notification(self):
         if self.pushover_config:
-            message = self.pushover_config.get('MESSAGE')
-            user_key = self.pushover_config.get('USER_KEY')
             api_token = self.pushover_config.get('API_TOKEN')
-            send_pushover_notification(message, user_key, api_token)
+            user_key = self.pushover_config.get('USER_KEY')
+            message = self.pushover_config.get('MESSAGE')
+
+        url = "https://api.pushover.net/1/messages.json"
+        data = {
+            "token": api_token,
+            "user": user_key,
+            "message": message
+        }
+        
+        response = requests.post(url, data=data)
+        
+        if response.status_code == 200:
+            print("Notification sent successfully!")
+        else:
+            print(f"Failed to send notification: {response.status_code}")
+            print(response.text)
 
     def process_frame(self, person_detected, face_detected):
         """Handle state transitions based on detection results."""
