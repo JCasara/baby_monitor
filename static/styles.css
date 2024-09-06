@@ -1,0 +1,9 @@
+body {
+  background-color: black;
+  color: white; /* Optional: Sets text color to white for better contrast */
+}
+h1,
+p,
+form {
+  color: white; /* Ensures that text within these elements is visible against the black background */
+}
