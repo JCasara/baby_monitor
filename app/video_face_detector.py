@@ -3,10 +3,10 @@ import time
 from collections import deque
 
 import cv2
-import face_recognition
-import torch
+# import face_recognition
+# import torch
 
-from app.detection_state import DetectionState
+# from app.detection_state import DetectionState
 
 
 class VideoFaceDetector:
@@ -15,19 +15,23 @@ class VideoFaceDetector:
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
             raise Exception("Error: Could not open webcam.")
+
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_config.get('frame_width', 640))
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_config.get('frame_height', 480))
+        self.video_capture.set(cv2.CAP_PROP_FPS, video_config.get('frame_rate', 30))
+        self.video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+
         
         self.scale_factor = video_config.get('scale_factor')
         self.buffer_size = video_config.get('buffer_size')
-        self.frame_rate = video_config.get("frame_rate")
         self.frame_buffer = deque(maxlen=self.buffer_size)  # Frame buffer
         self.lock = threading.Lock()
         self.running = True
-        self.frame_interval = 1.0 / self.frame_rate  # Calculate frame interval
         self.state_manager = state_manager
         self.fps = 0
         self.frame_count = 0
         self.start_time = time.time()
-        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+        # self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
         self.detection_interval = 100
         self.detection_counter = 0
         self.last_person_detected = False
@@ -91,8 +95,8 @@ class VideoFaceDetector:
             return
         
         # Resize the frame
-        small_frame = self._resize_frame(frame)
-        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        # small_frame = self._resize_frame(frame)
+        # rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
         
         # Detect persons
         # if self.detection_counter == 0:
@@ -112,22 +116,22 @@ class VideoFaceDetector:
         #     self._draw_bboxes(bbox_persons, frame)
 
         # Detect faces
-        face_locations = face_recognition.face_locations(rgb_small_frame)
+        # face_locations = face_recognition.face_locations(rgb_small_frame)
 
         # get bboxes for faces
-        bbox_faces = self._get_bbox_faces(face_locations)
+        # bbox_faces = self._get_bbox_faces(face_locations)
 
         # Handle state transitions
-        face_detected = len(bbox_faces) > 0
+        # face_detected = len(bbox_faces) > 0
         # self.state_manager.transition_state(person_detected, face_detected)
 
         # Draw face boxes if in FACE_DETECTED state
-        if face_detected:
-            self._draw_bboxes(bbox_faces, frame)
+        # if face_detected:
+        #     self._draw_bboxes(bbox_faces, frame)
            
         
         # Draw the appropriate annotations
-        self._draw_annotations(frame)
+        # self._draw_annotations(frame)
         
         # Calculate FPS and display it
         self._calculate_fps()

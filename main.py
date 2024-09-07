@@ -1,5 +1,4 @@
 import threading
-# import time
 
 import yaml
 
@@ -27,11 +26,7 @@ if __name__ == "__main__":
     # Start a thread for frame updating
     def update_frames():
         while detector.running:
-            # start_time = time.time()
             detector.update_frame()
-            # elapsed_time = time.time() - start_time
-            # sleep_time = max(0, detector.frame_interval - elapsed_time)
-            # time.sleep(sleep_time)
 
     frame_thread = threading.Thread(target=update_frames)
     frame_thread.daemon = True
