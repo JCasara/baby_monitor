@@ -1,7 +1,7 @@
 import asyncio
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse, StreamingResponse
-# from fastapi.staticfiles import StaticFiles
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 
@@ -11,7 +11,7 @@ class VideoStreamServer:
         self.server_config = server_config
         self.face_detector = face_detector
         self.templates = Jinja2Templates(directory="templates")
-        # self.app.mount('/static', StaticFiles(directory='static'), name='static')
+        self.app.mount('/static', StaticFiles(directory='static'), name='static')
 
         self.app.add_api_route("/video_feed", self.video_feed)
         self.app.add_api_route("/", self.index, methods=["GET"])
