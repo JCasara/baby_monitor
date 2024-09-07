@@ -1,42 +1,53 @@
-from flask import Flask, Response, redirect, render_template, request, url_for
+import asyncio
+from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.responses import RedirectResponse, StreamingResponse
+# from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 
 class VideoStreamServer:
     def __init__(self, server_config, face_detector):
-        self.app = Flask(__name__, template_folder='../templates', static_folder='../static')
+        self.app = FastAPI()
         self.server_config = server_config
         self.face_detector = face_detector
-        self.app.add_url_rule('/video_feed', 'video_feed', self.video_feed)
-        self.app.add_url_rule('/', 'index', self.index)
-        self.app.add_url_rule('/update_threshold', 'update_threshold', self.update_threshold, methods=['POST'])
+        self.templates = Jinja2Templates(directory="templates")
+        # self.app.mount('/static', StaticFiles(directory='static'), name='static')
 
-    def generate_frames(self):
+        self.app.add_api_route("/video_feed", self.video_feed)
+        self.app.add_api_route("/", self.index, methods=["GET"])
+        self.app.add_api_route("/update_threshold", self.update_threshold, methods=["POST"])
+
+    async def generate_frames(self):
         """Generate video frames for streaming."""
         while self.face_detector.running:
             frame = self.face_detector.get_frame()
             if frame is None:
                 continue
+            await asyncio.sleep(0.1)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-    
-    def video_feed(self):
-        """Route to display the video stream."""
-        return Response(self.generate_frames(),
-                        mimetype='multipart/x-mixed-replace; boundary=frame')
 
-    def index(self):
+    async def video_feed(self):
+        """Route to display the video stream."""
+        return StreamingResponse(self.generate_frames(),
+                                 media_type='multipart/x-mixed-replace; boundary=frame')
+
+    async def index(self, request: Request):
         """Render the main page with the threshold form."""
-        return render_template('index.html', current_threshold=self.face_detector.state_manager.max_no_face_count)
-    
-    def update_threshold(self):
+        return self.templates.TemplateResponse("index.html",
+                                               {"request": request,
+                                                "current_threshold": self.face_detector.state_manager.max_no_face_count})
+
+    async def update_threshold(self, threshold: int = Form(...)):
         """Update the frame count threshold."""
         try:
-            new_threshold = int(request.form['threshold'])
-            self.face_detector.state_manager.max_no_face_count = new_threshold
+            self.face_detector.state_manager.max_no_face_count = threshold
         except ValueError:
-            pass
-        return redirect(url_for('index'))
-    
+            raise HTTPException(status_code=400, detail="Invalid threshold value")
+        return RedirectResponse(url='/', status_code=303)
+
     def run(self):
-        """Run the Flask server."""
-        self.app.run(host=self.server_config['host'], port=self.server_config['port'], debug=True, threaded=True, use_reloader=False)
+        """Run the FastAPI server."""
+        import uvicorn
+        print(self.server_config)
+        uvicorn.run(self.app, host=self.server_config['host'], port=self.server_config['port'], log_level="info")
