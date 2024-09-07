@@ -3,7 +3,7 @@ import time
 from collections import deque
 
 import cv2
-# import face_recognition
+import face_recognition
 # import torch
 
 # from app.detection_state import DetectionState
@@ -32,8 +32,8 @@ class VideoFaceDetector:
         self.frame_count = 0
         self.start_time = time.time()
         # self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-        self.detection_interval = 100
-        self.detection_counter = 0
+        # self.detection_interval = 100
+        # self.detection_counter = 0
         self.last_person_detected = False
 
     def _resize_frame(self, frame):
@@ -95,8 +95,8 @@ class VideoFaceDetector:
             return
         
         # Resize the frame
-        # small_frame = self._resize_frame(frame)
-        # rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        small_frame = self._resize_frame(frame)
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
         
         # Detect persons
         # if self.detection_counter == 0:
@@ -116,18 +116,18 @@ class VideoFaceDetector:
         #     self._draw_bboxes(bbox_persons, frame)
 
         # Detect faces
-        # face_locations = face_recognition.face_locations(rgb_small_frame)
+        face_locations = face_recognition.face_locations(rgb_small_frame)
 
         # get bboxes for faces
-        # bbox_faces = self._get_bbox_faces(face_locations)
+        bbox_faces = self._get_bbox_faces(face_locations)
 
         # Handle state transitions
-        # face_detected = len(bbox_faces) > 0
+        face_detected = len(bbox_faces) > 0
         # self.state_manager.transition_state(person_detected, face_detected)
 
         # Draw face boxes if in FACE_DETECTED state
-        # if face_detected:
-        #     self._draw_bboxes(bbox_faces, frame)
+        if face_detected:
+            self._draw_bboxes(bbox_faces, frame)
            
         
         # Draw the appropriate annotations
@@ -138,15 +138,15 @@ class VideoFaceDetector:
         self._display_fps(frame)
         
         # Acquire a lock and set the output frame for streaming
-        with self.lock:
-            if self.running:
-                # Encode frame and add to buffer
-                ret, buffer = cv2.imencode('.jpg', frame)
-                if ret:
-                    self.frame_buffer.append(buffer.tobytes())
+        # with self.lock:
+        if self.running:
+            # Encode frame and add to buffer
+            ret, buffer = cv2.imencode('.jpg', frame)
+            if ret:
+                self.frame_buffer.append(buffer.tobytes())
 
         # Update the detection counter
-        self.detection_counter = (self.detection_counter + 1) % self.detection_interval
+        # self.detection_counter = (self.detection_counter + 1) % self.detection_interval
 
     def _display_fps(self, frame):
         """Display FPS on the frame."""
