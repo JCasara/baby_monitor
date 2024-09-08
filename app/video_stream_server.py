@@ -6,9 +6,10 @@ from fastapi.templating import Jinja2Templates
 
 
 class VideoStreamServer:
-    def __init__(self, server_config, face_detector):
+    def __init__(self, config, face_detector):
         self.app = FastAPI()
-        self.server_config = server_config
+        self.server_config = config['server']
+        self.video_config = config['video']
         self.face_detector = face_detector
         self.templates = Jinja2Templates(directory="templates")
         self.app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -36,6 +37,8 @@ class VideoStreamServer:
         """Render the main page with the threshold form."""
         return self.templates.TemplateResponse("index.html",
                                                {"request": request,
+                                                "image_width": self.video_config.get('image_width', 640),
+                                                "image_height": self.video_config.get('image_height', 480),
                                                 "current_threshold": self.face_detector.state_manager.max_no_face_count})
 
     async def update_threshold(self, threshold: int = Form(...)):
