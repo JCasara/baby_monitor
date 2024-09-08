@@ -4,37 +4,49 @@ from collections import deque
 
 import cv2
 import face_recognition
-# import torch
+import torch
 
 # from app.detection_state import DetectionState
 
 
 class VideoFaceDetector:
-    def __init__(self, video_config, state_manager):
+    def __init__(self, config, state_manager):
+        self._setup_camera(config['video'])
+        self._setup_frame_rate_counter()
+
+        self.lock = threading.Lock()
+        self.running = True
+        self.state_manager = state_manager
+        
+        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
+        # self.detection_interval = 100
+        # self.detection_counter = 0
+        self.last_person_detected = False
+
+    def _setup_camera(self, video_config):
+        """Sets up camera properties."""
         # Initialize the webcam
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
             raise Exception("Error: Could not open webcam.")
 
+        # Set frame width, height, fps, and encoding
         self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_config.get('frame_width', 640))
         self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_config.get('frame_height', 480))
         self.video_capture.set(cv2.CAP_PROP_FPS, video_config.get('frame_rate', 30))
         self.video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 
-        
+        # Set scale factor and buffer size
         self.scale_factor = video_config.get('scale_factor')
         self.buffer_size = video_config.get('buffer_size')
-        self.frame_buffer = deque(maxlen=self.buffer_size)  # Frame buffer
-        self.lock = threading.Lock()
-        self.running = True
-        self.state_manager = state_manager
+        self.frame_buffer = deque(maxlen=self.buffer_size)
+
+    def _setup_frame_rate_counter(self):
+        """Sets up frame rate counter."""
         self.fps = 0
         self.frame_count = 0
         self.start_time = time.time()
-        # self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-        # self.detection_interval = 100
-        # self.detection_counter = 0
-        self.last_person_detected = False
+
 
     def _resize_frame(self, frame):
         """Resize the frame to improve processing speed."""
@@ -49,8 +61,7 @@ class VideoFaceDetector:
         """Detect person in the frame using yolo."""
         person_bboxes = []
         for _, row in person_locations.iterrows():
-            left, top, right, bottom = int(row['xmin']), int(row['ymin']), int(row['xmax']), int(row['ymax'])
-            person_bboxes.append((top, right, bottom, left))
+            person_bboxes.append(int(row['ymin']), int(row['xmax']), int(row['ymax']), int(row['xmin']))
         return [self._scale_bbox(top, right, bottom, left)
                 for (top, right, bottom, left) in person_bboxes]
 
@@ -87,6 +98,11 @@ class VideoFaceDetector:
         for (top, right, bottom, left) in bbox_locations:
                 cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
+    def _display_fps(self, frame):
+        """Display FPS on the frame."""
+        fps_text = f"FPS: {self.fps:.2f}"
+        cv2.putText(frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+
     def update_frame(self):
         """Capture a frame from the webcam and process it."""
         ret, frame = self.video_capture.read()
@@ -100,34 +116,34 @@ class VideoFaceDetector:
         
         # Detect persons
         # if self.detection_counter == 0:
-        # yolo_results = self.yolo_model(rgb_small_frame)
-        # yolo_locations = yolo_results.pandas().xyxy[0]
-        # person_locations = yolo_locations[yolo_locations['name'] == 'person']
+        yolo_results = self.yolo_model(rgb_small_frame)
+        yolo_locations = yolo_results.pandas().xyxy[0]
+        person_locations = yolo_locations[yolo_locations['name'] == 'person']
         #
-        # # get bboxes for persons
-        # bbox_persons = self._get_bbox_persons(person_locations)
+        # get bboxes for persons
+        bbox_persons = self._get_bbox_persons(person_locations)
         #
         # # self.last_person_detected = len(person_locations) > 0
         # # person_detected = self.last_person_detected
-        # person_detected = len(person_locations) > 0
+        person_detected = len(person_locations) > 0
         #
-        # # Draw person boxes if in PERSON_DETECTED state
-        # if person_detected:
-        #     self._draw_bboxes(bbox_persons, frame)
+        # Draw person boxes if in PERSON_DETECTED state
+        if person_detected:
+            self._draw_bboxes(bbox_persons, frame)
 
-        # Detect faces
-        face_locations = face_recognition.face_locations(rgb_small_frame)
+            # Detect faces
+            face_locations = face_recognition.face_locations(rgb_small_frame)
 
-        # get bboxes for faces
-        bbox_faces = self._get_bbox_faces(face_locations)
+            # get bboxes for faces
+            bbox_faces = self._get_bbox_faces(face_locations)
 
-        # Handle state transitions
-        face_detected = len(bbox_faces) > 0
-        # self.state_manager.transition_state(person_detected, face_detected)
+            # Handle state transitions
+            face_detected = len(bbox_faces) > 0
+            # self.state_manager.transition_state(person_detected, face_detected)
 
-        # Draw face boxes if in FACE_DETECTED state
-        if face_detected:
-            self._draw_bboxes(bbox_faces, frame)
+            # Draw face boxes if in FACE_DETECTED state
+            if face_detected:
+                self._draw_bboxes(bbox_faces, frame)
            
         
         # Draw the appropriate annotations
@@ -146,12 +162,7 @@ class VideoFaceDetector:
                 self.frame_buffer.append(buffer.tobytes())
 
         # Update the detection counter
-        # self.detection_counter = (self.detection_counter + 1) % self.detection_interval
-
-    def _display_fps(self, frame):
-        """Display FPS on the frame."""
-        fps_text = f"FPS: {self.fps:.2f}"
-        cv2.putText(frame, fps_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+        # self.detection_counter = (self.detection_counter + 1) % self.detection_interval 
  
     def get_frame(self):
         """Return the current frame from the buffer."""

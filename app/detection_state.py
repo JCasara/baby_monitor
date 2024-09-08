@@ -11,12 +11,12 @@ class DetectionState(Enum):
 
 
 class StateManager:
-    def __init__(self, threshold_config, pushover_config):
+    def __init__(self, config):
         self.state = DetectionState.IDLE
         self.no_face_count = 0
-        self.threshold_config = threshold_config
-        self.max_no_face_count = threshold_config.get('detection_threshold')
-        self.pushover_config = pushover_config
+        self.threshold_config = config['threshold']
+        self.max_no_face_count = self.threshold_config.get('detection_threshold')
+        self.pushover_config = config['pushover']
 
     def send_pushover_notification(self):
         if self.pushover_config:

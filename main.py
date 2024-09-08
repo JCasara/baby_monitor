@@ -14,12 +14,9 @@ def load_config():
 if __name__ == "__main__":
 
     config = load_config()
-    video_config = config["video"]
-    pushover_config = config["pushover"]
-    threshold_config = config["threshold"]
 
-    state_manager = StateManager(threshold_config=threshold_config,pushover_config=pushover_config)
-    detector = VideoFaceDetector(video_config=video_config, state_manager=state_manager) 
+    state_manager = StateManager(config=config)
+    detector = VideoFaceDetector(config=config, state_manager=state_manager) 
     server = VideoStreamServer(config=config, face_detector=detector)
 
     # Start a thread for frame updating

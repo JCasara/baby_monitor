@@ -36,9 +36,9 @@ async def video_feed():
             process.stderr.close()
             process.terminate()
 
-    return StreamingResponse(stream_video(), media_type='video/mp2t')
+    return StreamingResponse(stream_video(), media_type='/x-mixed-replace; boundary=frame')
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
