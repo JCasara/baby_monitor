@@ -8,6 +8,12 @@ from app.state_manager import StateManager
 from app.video_detector import VideoDetector
 from app.video_stream_server import VideoStreamServer
 
+def signal_handler(sig, frame):
+    print('Signal received, shutting down...')
+    detector.running = False  # Stop the frame updating thread
+    detector.release_resources()
+    sys.exit(0)
+
 if __name__ == "__main__":
     # Load the configuration using ConfigLoader
     config_loader = ConfigLoader()
@@ -25,6 +31,7 @@ if __name__ == "__main__":
     def update_frames():
         while detector.running:
             detector.update_frame()
+        print("Frame updating stopped.")
 
     frame_thread = threading.Thread(target=update_frames)
     frame_thread.daemon = True

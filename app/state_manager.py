@@ -19,12 +19,14 @@ class StateManager:
 
     def process_frame(self, person_detected: bool, face_detected: bool) -> None:
         """Handle state transitions based on detection results."""
-        if self.state == DetectionState.IDLE:
-            if person_detected:
-                self.transition_state(person_detected, True)
-        elif self.state in [DetectionState.PERSON_DETECTED, DetectionState.FACE_DETECTED]:
-            self.transition_state(person_detected, face_detected)
-
+        if person_detected:
+            if face_detected:
+                self.transition_state(True, True)
+            else:
+                self.transition_state(True, False)
+        else:
+            self.transition_state(False, False)
+        
     def transition_state(self, person_detected: bool, face_detected: bool) -> None:
         """Handle state transitions based on detection results."""
         if person_detected:

@@ -54,4 +54,4 @@ class VideoStreamServer(VideoStreamServerInterface):
 
     def run(self):
         import uvicorn
-        uvicorn.run(self.app, host=self.server_config['host'], port=self.server_config['port'], log_level="info")
+        uvicorn.run(self.app, host=self.server_config['host'], port=self.server_config['port'], log_level="info", timeout_keep_alive=5, timeout_graceful_shutdown=5)

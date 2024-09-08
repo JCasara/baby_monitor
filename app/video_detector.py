@@ -6,6 +6,7 @@ import cv2
 from .interfaces.camera_interface import CameraInterface
 from .interfaces.detector_interface import DetectorInterface
 from .interfaces.state_manager_interface import StateManagerInterface
+from .state_manager import DetectionState
 
 
 class VideoDetector:
@@ -34,7 +35,10 @@ class VideoDetector:
                 self.state_manager.transition_state(True, True)
             else:
                 self.state_manager.transition_state(True, False)
+        else:
+            self.state_manager.transition_state(False, False)
 
+        self._draw_annotations(frame)
         self._calculate_fps()
         self._display_fps(frame)
 
@@ -47,6 +51,23 @@ class VideoDetector:
     def _draw_bboxes(self, bbox_locations, frame):
         for (top, right, bottom, left) in bbox_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+
+    def _draw_annotations(self, frame):
+        """Draw the appropriate annotations based on the current state."""
+        if self.state_manager.get_state() == DetectionState.FACE_DETECTED:
+            annotation_text = "Face"
+            color = (0, 255, 0)
+        elif self.state_manager.get_state() == DetectionState.NO_FACE_DETECTED:
+            annotation_text = "Face Not Detected"
+            color = (0, 0, 255)
+        elif self.state_manager.get_state() == DetectionState.PERSON_DETECTED:
+            annotation_text = "Person"
+            color = (255, 0, 0)
+        else:
+            annotation_text = "Idle"
+            color = (255, 255, 255)
+
+        cv2.putText(frame, annotation_text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
     def _calculate_fps(self):
         self.frame_count += 1
