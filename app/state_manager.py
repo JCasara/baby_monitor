@@ -1,6 +1,6 @@
 from enum import Enum, auto
 
-import requests
+from app.services.pushover_service import PushoverService
 
 
 class DetectionState(Enum):
@@ -9,37 +9,15 @@ class DetectionState(Enum):
     FACE_DETECTED = auto()
     NO_FACE_DETECTED = auto()
 
-
 class StateManager:
-    def __init__(self, config):
+    def __init__(self, config, pushover_service: PushoverService):
         self.state = DetectionState.IDLE
         self.no_face_count = 0
-        self.threshold_config = config['threshold']
-        self.max_no_face_count = self.threshold_config.get('detection_threshold')
-        self.pushover_config = config['pushover']
+        self.max_no_face_count = config['threshold'].get('detection_threshold')
+        self.pushover_service = pushover_service
+        self.message = config['pushover'].get('MESSAGE', 'No message provided!')
 
-    def send_pushover_notification(self):
-        if self.pushover_config:
-            api_token = self.pushover_config.get('API_TOKEN')
-            user_key = self.pushover_config.get('USER_KEY')
-            message = self.pushover_config.get('MESSAGE')
-
-        url = "https://api.pushover.net/1/messages.json"
-        data = {
-            "token": api_token,
-            "user": user_key,
-            "message": message
-        }
-        
-        response = requests.post(url, data=data)
-        
-        if response.status_code == 200:
-            print("Notification sent successfully!")
-        else:
-            print(f"Failed to send notification: {response.status_code}")
-            print(response.text)
-
-    def process_frame(self, person_detected, face_detected):
+    def process_frame(self, person_detected: bool, face_detected: bool) -> None:
         """Handle state transitions based on detection results."""
         if self.state == DetectionState.IDLE:
             if person_detected:
@@ -47,7 +25,7 @@ class StateManager:
         elif self.state in [DetectionState.PERSON_DETECTED, DetectionState.FACE_DETECTED]:
             self.transition_state(person_detected, face_detected)
 
-    def transition_state(self, person_detected, face_detected):
+    def transition_state(self, person_detected: bool, face_detected: bool) -> None:
         """Handle state transitions based on detection results."""
         if person_detected:
             if face_detected:
@@ -59,7 +37,7 @@ class StateManager:
                 if self.no_face_count >= self.max_no_face_count:
                     if self.state != DetectionState.NO_FACE_DETECTED:
                         self.state = DetectionState.NO_FACE_DETECTED
-                        # self._send_pushover_notification()
+                        self.pushover_service.send_notification(self.message)
                 else:
                     if self.state != DetectionState.PERSON_DETECTED:
                         self.state = DetectionState.PERSON_DETECTED
@@ -68,5 +46,5 @@ class StateManager:
                 self.state = DetectionState.IDLE
                 self.no_face_count = 0  # Reset the counter if no person is detected
 
-    def get_state(self):
+    def get_state(self) -> DetectionState:
         return self.state
