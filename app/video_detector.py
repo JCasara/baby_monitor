@@ -6,7 +6,6 @@ import cv2
 from .interfaces.camera_interface import CameraInterface
 from .interfaces.detector_interface import DetectorInterface
 from .interfaces.state_manager_interface import StateManagerInterface
-from .state_manager import DetectionState
 
 
 class VideoDetector:
@@ -21,51 +20,15 @@ class VideoDetector:
         self.frame_count = 0
         self.start_time = time.time()
 
-    def update_frame(self):
-        frame = self.camera_service.capture_frame()
-        if frame is None:
-            return
-
-        person_bboxes = self.detector_service.detect_persons(frame)
-        if person_bboxes:
-            self._draw_bboxes(person_bboxes, frame)
-            face_bboxes = self.detector_service.detect_faces(frame)
-            if face_bboxes:
-                self._draw_bboxes(face_bboxes, frame)
-                self.state_manager.transition_state(True, True)
-            else:
-                self.state_manager.transition_state(True, False)
-        else:
-            self.state_manager.transition_state(False, False)
-
-        self._draw_annotations(frame)
-        self._calculate_fps()
-        self._display_fps(frame)
-
-        with self.lock:
-            if self.running:
-                ret, buffer = cv2.imencode('.jpg', frame)
-                if ret:
-                    self.camera_service.frame_buffer.append(buffer.tobytes())
-
     def _draw_bboxes(self, bbox_locations, frame):
         for (top, right, bottom, left) in bbox_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
     def _draw_annotations(self, frame):
         """Draw the appropriate annotations based on the current state."""
-        if self.state_manager.get_state() == DetectionState.FACE_DETECTED:
-            annotation_text = "Face"
-            color = (0, 255, 0)
-        elif self.state_manager.get_state() == DetectionState.NO_FACE_DETECTED:
-            annotation_text = "Face Not Detected"
-            color = (0, 0, 255)
-        elif self.state_manager.get_state() == DetectionState.PERSON_DETECTED:
-            annotation_text = "Person"
-            color = (255, 0, 0)
-        else:
-            annotation_text = "Idle"
-            color = (255, 255, 255)
+        state = self.state_manager.get_state()
+        annotation_text = state.get_annotation()
+        color = state.get_color()
 
         cv2.putText(frame, annotation_text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
 
@@ -84,6 +47,33 @@ class VideoDetector:
             if len(self.camera_service.frame_buffer) > 0:
                 return self.camera_service.frame_buffer.popleft()
             return None
+
+    def update_frame(self):
+        frame = self.camera_service.capture_frame()
+        if frame is None:
+            return
+
+        person_bboxes = self.detector_service.detect_persons(frame)
+        if person_bboxes:
+            self._draw_bboxes(person_bboxes, frame)
+            face_bboxes = self.detector_service.detect_faces(frame)
+            if face_bboxes:
+                self._draw_bboxes(face_bboxes, frame)
+                self.state_manager.process_frame(True, True)
+            else:
+                self.state_manager.process_frame(True, False)
+        else:
+            self.state_manager.process_frame(False, False)
+
+        self._draw_annotations(frame)
+        self._calculate_fps()
+        self._display_fps(frame)
+
+        with self.lock:
+            if self.running:
+                ret, buffer = cv2.imencode('.jpg', frame)
+                if ret:
+                    self.camera_service.frame_buffer.append(buffer.tobytes())
 
     def release_resources(self):
         self.running = False

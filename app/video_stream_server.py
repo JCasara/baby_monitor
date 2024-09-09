@@ -16,6 +16,7 @@ class VideoStreamServer(VideoStreamServerInterface):
         self.app = FastAPI()
         self.server_config = config['server']
         self.video_config = config['video']
+        self.frame_rate = self.video_config.get('frame_rate', 30)
         self.face_detector = face_detector
         self.state_manager = state_manager
         self.templates = Jinja2Templates(directory="templates")
@@ -46,10 +47,19 @@ class VideoStreamServer(VideoStreamServerInterface):
                                                 "current_threshold": self.state_manager.max_no_face_count})
 
     async def update_threshold(self, threshold: int = Form(...)):
+        # Calculate bounds based on frame_rate
+        min_threshold = self.frame_rate * 1 # Minimum of 1 second
+        max_threshold = self.frame_rate * 20 # Maximum of 20 seconds
+
+        # Ensure the threshold is within bounds
+        if threshold < min_threshold or threshold > max_threshold:
+            raise HTTPException(status_code=400, detail=f"Threshold must be between {min_threshold} and {max_threshold} frames.")
+
         try:
             self.state_manager.max_no_face_count = threshold
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid threshold value")
+
         return RedirectResponse(url='/', status_code=303)
 
     def run(self):
