@@ -27,6 +27,9 @@ class CameraService(CameraInterface):
             return None
         
         # frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
+
+        # Mirror image about y-axis
+        frame = cv2.flip(frame, 1)
         return frame
 
     def release_resources(self):
