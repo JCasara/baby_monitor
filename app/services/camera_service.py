@@ -18,6 +18,7 @@ class CameraService(CameraInterface):
 
         self.scale_factor = video_config.get('scale_factor')
         self.buffer_size = video_config.get('buffer_size')
+        self.frame_rate = video_config.get('frame_rate')
         self.frame_buffer = deque(maxlen=self.buffer_size)
 
     def capture_frame(self):
@@ -26,8 +27,6 @@ class CameraService(CameraInterface):
             print("Error: Failed to capture image.")
             return None
         
-        # frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
-
         # Mirror image about y-axis
         frame = cv2.flip(frame, 1)
         return frame
