@@ -33,9 +33,20 @@ if __name__ == "__main__":
             detector.update_frame()
         print("Frame updating stopped.")
 
+    def make_detections():
+        while detector.running:
+            if detector.frame_count % camera_service.frame_rate == 0:
+                detector.make_detections()
+        print("Detections stopped.")
+
+
     frame_thread = threading.Thread(target=update_frames)
     frame_thread.daemon = True
     frame_thread.start()
+
+    detection_thread = threading.Thread(target=make_detections)
+    detection_thread.daemon = True
+    detection_thread.start()
 
     try:
         server.run()
