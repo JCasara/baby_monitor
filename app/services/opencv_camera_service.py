@@ -5,7 +5,7 @@ import cv2
 from app.interfaces.camera_interface import CameraInterface
 
 
-class CameraService(CameraInterface):
+class OpenCVCameraService(CameraInterface):
     def __init__(self, video_config):
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
