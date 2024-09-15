@@ -31,7 +31,7 @@ class VideoStreamServer(VideoStreamServerInterface):
             frame = self.face_detector.get_frame()
             if frame is None:
                 continue
-            await asyncio.sleep(0.1)
+            await asyncio.sleep(0.0333)
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
