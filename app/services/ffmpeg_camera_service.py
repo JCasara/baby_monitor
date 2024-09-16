@@ -32,18 +32,17 @@ class FFmpegCameraService(CameraInterface):
         # FFmpeg command to capture video from the camera at 1920x1080 and 30fps
         command = [
             'ffmpeg',
-            '-f', 'v4l2',           # Linux video device input
+            '-f', 'v4l2',
             '-framerate', f'{self.frame_rate}',      # Frame rate
             '-video_size', f'{self.image_width}x{self.image_height}',  # Video resolution
             '-i', f'{self.camera_device}',     # Camera device (adjust if necessary)
-            '-vcodec', 'libx264',    # Encode video to H.264
-            '-preset', 'ultrafast',  # FFmpeg encoding preset for low-latency
-            '-tune', 'zerolatency',  # Tune for low-latency streaming
-            '-f', 'mpegts',          # Output format
-            'pipe:1'                      # Output to stdout
-            '-an',
-            '-y'
+            '-f', 'mpegts',
+            '-codec:v', 'mpeg1video',
+            '-b:v', '800k',
+            '-r', '30',
+            '-'
         ]
+
 
         return subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
@@ -54,6 +53,8 @@ class FFmpegCameraService(CameraInterface):
             raise RuntimeError("Failed to capture frame via FFmpeg")
 
         frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((self.image_height, self.image_width, 3))
+        if not frame.flags.writeable:
+            frame = frame.copy()
         return frame
 
     def release_resources(self) -> None:
