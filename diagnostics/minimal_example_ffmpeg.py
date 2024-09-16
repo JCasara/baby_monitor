@@ -20,12 +20,11 @@ def video_feed():
     command = [
         'ffmpeg',
         '-f', 'v4l2',
-        '-input_format', 'mjpeg',  # Ensuring MJPEG input format
         '-framerate', '30',
         '-video_size', '640x480',
         '-i', '/dev/video0',
-        '-f', 'h264',
-        '-q:v', '2',
+        '-f', 'mjpeg',
+        '-c:v', 'mjpeg',
         'pipe:1'
     ]
     process = subprocess.Popen(command, stdout=subprocess.PIPE, bufsize=10**8)

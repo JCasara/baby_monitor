@@ -1,44 +1,52 @@
-from fastapi import FastAPI, Response
-from fastapi.responses import StreamingResponse
 import subprocess
 
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+app.mount('/static', StaticFiles(directory='static'), name='static')
+
 
 @app.get("/video_feed")
 async def video_feed():
     # FFmpeg command to capture video from the camera at 1920x1080 and 30fps
     command = [
-        'ffmpeg',
-        '-f', 'v4l2',           # Linux video device input
-        '-framerate', '30',      # Frame rate
-        '-video_size', '1920x1080',  # Video resolution
-        '-i', '/dev/video0',     # Camera device (adjust if necessary)
-        '-vcodec', 'libx264',    # Encode video to H.264
-        '-preset', 'ultrafast',  # FFmpeg encoding preset for low-latency
-        '-tune', 'zerolatency',  # Tune for low-latency streaming
-        '-f', 'mpegts',          # Output format
-        'pipe:1'                      # Output to stdout
-        '-an',
-        '-y'
-    ]
+            'ffmpeg',
+            '-f', 'v4l2',
+            '-framerate', '30',
+            '-video_size', '640x480',
+            '-i', '/dev/video0',
+            '-c:v', 'libx264',
+            '-f', 'hls',
+            '-hls_time', '2',
+            '-hls_list_size', '10',
+            '-hls_flags', 'delete_segments',
+            '../static/stream.m3u8'
+        ]
 
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    def stream_video():
+    async def stream_video():
         try:
             while True:
-                data = process.stdout.read(1024)
+                # data = process.stdout.read(640*480*3)
+                data = process.stdout.read(640*480*3)
                 if not data:
                     break
                 yield data
+                # yield (b'--frame\r\n'
+                #     b'Content-Type: image/jpeg\r\n\r\n' + data + b'\r\n')
+
         finally:
             process.stdout.close()
             process.stderr.close()
             process.terminate()
 
-    return StreamingResponse(stream_video(), media_type='/x-mixed-replace; boundary=frame')
+    return StreamingResponse(stream_video(), media_type='video/mpeg')
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-
+    uvicorn.run(app, host="0.0.0.0", port=8080)
