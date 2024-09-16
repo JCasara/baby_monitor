@@ -2,9 +2,10 @@ import threading
 
 from app.services.config_loader_service import ConfigLoader
 from app.services.detector_service import DetectorService
-from app.services.opencv_camera_service import OpenCVCameraService as CameraService
+from app.services.opencv_camera_service import \
+    OpenCVCameraService as CameraService
 # from app.services.ffmpeg_camera_service import \
-    # FFmpegCameraService as CameraService
+#     FFmpegCameraService as CameraService
 from app.services.pushover_service import PushoverService
 from app.state_manager import StateManager
 from app.video_detector import VideoDetector
