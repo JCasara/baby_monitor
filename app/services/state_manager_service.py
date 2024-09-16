@@ -2,7 +2,7 @@ from app.services.pushover_service import PushoverService
 from app.states.state_classes import IdleState
 
 
-class StateManager:
+class StateManagerService:
     def __init__(self, config, pushover_service: PushoverService):
         self.state = IdleState(self)
         self.no_face_count = 0

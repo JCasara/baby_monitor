@@ -1,23 +1,23 @@
 import asyncio
+from typing import Any, AsyncGenerator, Coroutine
 
+import cv2
 from fastapi import FastAPI, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .interfaces.camera_interface import CameraInterface
-from .interfaces.state_manager_interface import StateManagerInterface
-from .interfaces.video_stream_server_interface import \
-    VideoStreamServerInterface
+from app.interfaces.server_interface import ServerInterface
+from app.interfaces.state_manager_interface import StateManagerInterface
 
 
-class VideoStreamServer(VideoStreamServerInterface):
-    def __init__(self, config, face_detector: CameraInterface, state_manager: StateManagerInterface):
+class ServerService(ServerInterface):
+    def __init__(self, config, streamer, state_manager: StateManagerInterface):
         self.app = FastAPI()
         self.server_config = config['server']
         self.video_config = config['video']
         self.frame_rate = self.video_config.get('frame_rate', 30)
-        self.face_detector = face_detector
+        self.streamer = streamer
         self.state_manager = state_manager
         self.templates = Jinja2Templates(directory="templates")
         self.app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -26,27 +26,32 @@ class VideoStreamServer(VideoStreamServerInterface):
         self.app.add_api_route("/", self.index, methods=["GET"])
         self.app.add_api_route("/update_threshold", self.update_threshold, methods=["POST"])
 
-    async def generate_frames(self):
-        while self.face_detector.running:
-            frame = self.face_detector.get_frame()
-            if frame is None:
-                continue
-            await asyncio.sleep(0.0333)
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+    async def generate_frames(self) -> Coroutine[Any, Any, AsyncGenerator[bytes, Any]]:
+        async def async_gen() -> AsyncGenerator[bytes, Any]:
+            while self.streamer.running:
+                frame = self.streamer.get_frame()
+                if frame is None:
+                    continue
+                ret, encoded_data = cv2.imencode('.jpg', frame)
+                if ret:
+                    byte_data = encoded_data.tobytes()
+                    yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
+                await asyncio.sleep(0.0333)
+        return async_gen()
 
-    async def video_feed(self):
-        return StreamingResponse(self.generate_frames(),
+    async def video_feed(self) -> StreamingResponse:
+        async_gen = await self.generate_frames()
+        return StreamingResponse(async_gen,
                                  media_type='multipart/x-mixed-replace; boundary=frame')
 
-    async def index(self, request: Request):
+    async def index(self, request: Request) -> HTMLResponse:
         return self.templates.TemplateResponse("index.html",
                                                {"request": request,
                                                 "image_width": self.video_config.get('image_width', 640),
                                                 "image_height": self.video_config.get('image_height', 480),
                                                 "current_threshold": self.state_manager.max_no_face_count})
 
-    async def update_threshold(self, threshold: int = Form(...)):
+    async def update_threshold(self, threshold: int = Form(...)) -> RedirectResponse:
         # Calculate bounds based on frame_rate
         min_threshold = self.frame_rate * 1 # Minimum of 1 second
         max_threshold = self.frame_rate * 20 # Maximum of 20 seconds
@@ -62,6 +67,6 @@ class VideoStreamServer(VideoStreamServerInterface):
 
         return RedirectResponse(url='/', status_code=303)
 
-    def run(self):
+    def run(self) -> None:
         import uvicorn
         uvicorn.run(self.app, host=self.server_config['host'], port=self.server_config['port'], log_level="info", timeout_keep_alive=5, timeout_graceful_shutdown=5)
