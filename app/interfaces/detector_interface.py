@@ -1,16 +1,25 @@
+import threading
 from abc import ABC, abstractmethod
-from typing import List, Tuple
 
-import numpy as np
+from app.interfaces.camera_interface import CameraInterface
+from app.interfaces.detection_interface import DetectionInterface
+from app.interfaces.state_manager_interface import StateManagerInterface
 
 
-class DetectorInterface(ABC):
+class VideoDetector(ABC):
+    def __init__(self, camera_service: CameraInterface, detection_service: DetectionInterface, state_manager: StateManagerInterface):
+        self.camera_service: CameraInterface = camera_service
+        self.detection_service: DetectionInterface = detection_service
+        self.state_manager: StateManagerInterface = state_manager
+        self.lock: threading.Lock = threading.Lock()
+        self.running: bool = True
+        
     @abstractmethod
-    def detect_faces(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
-        """Returns a list of bounding box coordinates for faces detected in the frame."""
+    def start(self):
+        """Start video detector thread."""
         pass
 
     @abstractmethod
-    def detect_persons(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
-        """Returns a list of bounding box coordinates for persons detected in the frame."""
+    def release_resources(self):
+        """Release video detector resources."""
         pass

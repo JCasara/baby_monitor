@@ -1,30 +1,68 @@
-from typing import List, Tuple
+import threading
+import time
 
 import cv2
-import face_recognition
-import torch
 
-from app.interfaces.detector_interface import DetectorInterface
+from app.interfaces.camera_interface import CameraInterface
+from app.interfaces.detection_interface import DetectionInterface
+from app.interfaces.state_manager_interface import StateManagerInterface
 
 
-class DetectorService(DetectorInterface):
-    def __init__(self, scale_factor):
-        self.yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s')
-        self.scale_factor = scale_factor
+class DetectorService:
+    def __init__(self, camera_service: CameraInterface, detection_service: DetectionInterface, state_manager: StateManagerInterface):
+        self.camera_service: CameraInterface = camera_service
+        self.detection_service: DetectionInterface = detection_service
+        self.state_manager: StateManagerInterface = state_manager
+        self.lock: threading.Lock = threading.Lock()
+        self.running: bool = True
+        self.fps: float = 0
+        self.frame_count: int = 0
+        self.start_time: float = time.time()
 
-    def _scale_bbox(self, top, right, bottom, left) -> Tuple[int, int, int, int]:
-        return (int(top / self.scale_factor), int(right / self.scale_factor),
-                int(bottom / self.scale_factor), int(left / self.scale_factor))
-    
-    def detect_faces(self, frame) -> List[Tuple[int, int, int, int]]:
-        small_frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
-        rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(rgb_frame)
-        return [self._scale_bbox(top, right, bottom, left) for (top, right, bottom, left) in face_locations]
+    def _draw_bboxes(self, bbox_locations, frame) -> None:
+        """Draw bounding boxes for detections."""
+        for (top, right, bottom, left) in bbox_locations:
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
 
-    def detect_persons(self, frame) -> List[Tuple[int, int, int, int]]:
-        small_frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
-        yolo_results = self.yolo_model(small_frame)
-        yolo_locations = yolo_results.pandas().xyxy[0]
-        person_locations = yolo_locations[yolo_locations['name'] == 'person']
-        return [self._scale_bbox(int(row['ymin']), int(row['xmax']), int(row['ymax']), int(row['xmin'])) for _, row in person_locations.iterrows()]
+    def _draw_annotations(self, frame) -> None:
+        """Draw annotations on image that indicate state."""
+        state = self.state_manager.get_state()
+        annotation_text = state.get_annotation()
+        color = state.get_color()
+
+        cv2.putText(frame, annotation_text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+
+    def _process_frame(self) -> None:
+        """Process frame by performing detections."""
+        while self.running:
+            with self.lock:
+                if len(self.camera_service.frame_buffer) > 0:
+                    frame = self.camera_service.frame_buffer.popleft()
+                else:
+                    time.sleep(0.0333)
+                    continue
+
+                person_bboxes = self.detection_service.detect_persons(frame)
+                if person_bboxes:
+                    self._draw_bboxes(person_bboxes, frame)
+                    face_bboxes = self.detection_service.detect_faces(frame)
+                    if face_bboxes:
+                        self._draw_bboxes(face_bboxes, frame)
+                        self.state_manager.process_frame(True, True)
+                    else:
+                        self.state_manager.process_frame(True, False)
+                else:
+                    self.state_manager.process_frame(False, False)
+                self._draw_annotations(frame)
+                self.camera_service.frame_buffer.append(frame)
+                        
+    def start(self) -> None:
+        """Start video detector thread."""
+        self.thread = threading.Thread(target=self._process_frame)
+        self.thread.daemon = True
+        self.thread.start()
+
+    def release_resources(self) -> None:
+        """Release video detector resources."""
+        self.running = False
+        self.thread.join()
