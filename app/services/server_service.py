@@ -37,7 +37,7 @@ class ServerService(ServerInterface):
                 if ret:
                     byte_data = encoded_data.tobytes()
                     yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
-                await asyncio.sleep(0.0333)
+                await asyncio.sleep(0.01)
         return async_gen()
 
     async def video_feed(self) -> StreamingResponse:

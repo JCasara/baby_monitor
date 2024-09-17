@@ -1,3 +1,4 @@
+import threading
 from collections import deque
 from typing import Optional
 
@@ -12,6 +13,8 @@ class OpenCVCameraService(CameraInterface):
         self.video_capture = cv2.VideoCapture(0)
         if not self.video_capture.isOpened():
             raise Exception("Error: Could not open webcam.")
+
+        self.lock = threading.Lock()
 
         self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_config.get('frame_width', 640))
         self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_config.get('frame_height', 480))
@@ -32,6 +35,8 @@ class OpenCVCameraService(CameraInterface):
         
         # Mirror image about y-axis
         frame = cv2.flip(frame, 1)
+        # TODO: shouldn't frame buffer be updated here?
+        # TODO: Also, shouldn't camera service be its own thread?
         return frame
 
     def release_resources(self) -> None:
