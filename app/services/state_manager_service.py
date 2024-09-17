@@ -1,5 +1,5 @@
 from app.services.pushover_service import PushoverService
-from app.states.state_classes import IdleState
+from app.states.state_classes import IdleState, State
 
 
 class StateManagerService:
@@ -10,7 +10,7 @@ class StateManagerService:
         self.pushover_service = pushover_service
         self.message = config['pushover'].get('MESSAGE', 'No message provided!')
 
-    def set_state(self, state):
+    def set_state(self, state) -> None:
         """Set a new state."""
         self.state = state
 
@@ -18,6 +18,6 @@ class StateManagerService:
         """Delegate frame processing to the current state."""
         self.state.process_frame(person_detected, face_detected)
 
-    def get_state(self):
+    def get_state(self) -> State:
         """Get the current state."""
         return self.state

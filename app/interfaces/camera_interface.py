@@ -8,8 +8,9 @@ import numpy as np
 class CameraInterface(ABC):
     @abstractmethod
     def __init__(self, video_config):
-        self.frame_buffer = deque()
-        self.video_config = video_config
+        self.frame_buffer: deque = deque()
+        self.buffer_size: int = 0
+        self.video_config: dict = video_config
 
     @abstractmethod
     def capture_frame(self) -> Optional[np.ndarray]:

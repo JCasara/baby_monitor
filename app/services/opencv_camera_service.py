@@ -1,6 +1,8 @@
 from collections import deque
+from typing import Optional
 
 import cv2
+import numpy as np
 
 from app.interfaces.camera_interface import CameraInterface
 
@@ -21,7 +23,7 @@ class OpenCVCameraService(CameraInterface):
         self.frame_rate = video_config.get('frame_rate')
         self.frame_buffer = deque(maxlen=self.buffer_size)
 
-    def capture_frame(self):
+    def capture_frame(self) -> Optional[np.ndarray]:
         ret, frame = self.video_capture.read()
         if not ret:
             print("Error: Failed to capture image.")
@@ -31,6 +33,6 @@ class OpenCVCameraService(CameraInterface):
         frame = cv2.flip(frame, 1)
         return frame
 
-    def release_resources(self):
+    def release_resources(self) -> None:
         self.video_capture.release()
         # cv2.destroyAllWindows()

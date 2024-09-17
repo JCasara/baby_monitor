@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 import numpy as np
 
@@ -15,7 +16,7 @@ class StreamInterface(ABC):
         pass
 
     @abstractmethod
-    def get_frame(self) -> np.ndarray:
+    def get_frame(self) -> Optional[np.ndarray]:
         """Get camera frame"""
         pass
 
