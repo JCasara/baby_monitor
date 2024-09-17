@@ -15,9 +15,10 @@ class PushoverService(NotificationInterface):
             "user": self.user_key,
             "message": message
         }
-        response = requests.post(url, data=data)
-        if response.status_code == 200:
-            print("Notification sent successfully!")
-        else:
-            print(f"Failed to send notification: {response.status_code}")
-            print(response.text)
+        print(message)
+        # response = requests.post(url, data=data)
+        # if response.status_code == 200:
+        #     print("Notification sent successfully!")
+        # else:
+        #     print(f"Failed to send notification: {response.status_code}")
+        #     print(response.text)

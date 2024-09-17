@@ -27,6 +27,7 @@ class ServerService(ServerInterface):
         self.app.add_api_route("/update_threshold", self.update_threshold, methods=["POST"])
 
     async def generate_frames(self) -> Coroutine[Any, Any, AsyncGenerator[bytes, Any]]:
+        """Generate a frame for the video server."""
         async def async_gen() -> AsyncGenerator[bytes, Any]:
             while self.streamer.running:
                 frame = self.streamer.get_frame()
@@ -40,11 +41,13 @@ class ServerService(ServerInterface):
         return async_gen()
 
     async def video_feed(self) -> StreamingResponse:
+        """Video feed page of the server."""
         async_gen = await self.generate_frames()
         return StreamingResponse(async_gen,
                                  media_type='multipart/x-mixed-replace; boundary=frame')
 
     async def index(self, request: Request) -> HTMLResponse:
+        """Main page of server."""
         return self.templates.TemplateResponse("index.html",
                                                {"request": request,
                                                 "image_width": self.video_config.get('image_width', 640),
@@ -52,6 +55,7 @@ class ServerService(ServerInterface):
                                                 "current_threshold": self.state_manager.max_no_face_count})
 
     async def update_threshold(self, threshold: int = Form(...)) -> RedirectResponse:
+        """Updates the notification threshold (number of frames) for detections."""
         # Calculate bounds based on frame_rate
         min_threshold = self.frame_rate * 1 # Minimum of 1 second
         max_threshold = self.frame_rate * 20 # Maximum of 20 seconds
@@ -68,5 +72,6 @@ class ServerService(ServerInterface):
         return RedirectResponse(url='/', status_code=303)
 
     def run(self) -> None:
+        """Runs the FastAPI server with uvicorn."""
         import uvicorn
         uvicorn.run(self.app, host=self.server_config['host'], port=self.server_config['port'], log_level="info", timeout_keep_alive=5, timeout_graceful_shutdown=5)

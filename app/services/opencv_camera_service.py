@@ -24,6 +24,7 @@ class OpenCVCameraService(CameraInterface):
         self.frame_buffer = deque(maxlen=self.buffer_size)
 
     def capture_frame(self) -> Optional[np.ndarray]:
+        """Capture a frame from the camera using opencv."""
         ret, frame = self.video_capture.read()
         if not ret:
             print("Error: Failed to capture image.")
@@ -34,5 +35,6 @@ class OpenCVCameraService(CameraInterface):
         return frame
 
     def release_resources(self) -> None:
+        """Release camera resources."""
         self.video_capture.release()
         # cv2.destroyAllWindows()
