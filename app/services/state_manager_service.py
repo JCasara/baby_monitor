@@ -1,15 +1,17 @@
+from typing import Optional
+
 from app.interfaces.state_manager_interface import StateManagerInterface
-from app.services.pushover_service import PushoverService
+from app.interfaces.notification_interface import NotificationInterface
 from app.states.state_classes import IdleState, State
 
 
 class StateManagerService(StateManagerInterface):
-    def __init__(self, config: dict, pushover_service: PushoverService):
-        self.state = IdleState(self)
-        self.no_face_count = 0
-        self.max_no_face_count = config['threshold'].get('detection_threshold')
-        self.pushover_service = pushover_service
-        self.message = config['pushover'].get('MESSAGE', 'No message provided!')
+    def __init__(self, config: dict, pushover_service: NotificationInterface):
+        self.state: State = IdleState(self)
+        self.no_face_count: Optional[int] = 0
+        self.max_no_face_count: Optional[int] = config['threshold'].get('detection_threshold')
+        self.pushover_service: NotificationInterface = pushover_service
+        self.message: Optional[str] = config['pushover'].get('MESSAGE', 'No message provided!')
 
     def set_state(self, state: State) -> None:
         """Set a new state."""

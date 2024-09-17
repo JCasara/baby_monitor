@@ -1,16 +1,18 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
+from app.interfaces.notification_interface import NotificationInterface
 from app.states.state_classes import IdleState, State
 
 
 class StateManagerInterface(ABC):
     @abstractmethod
-    def __init__(self, config, pushover_service):
+    def __init__(self, config: dict, pushover_service: NotificationInterface):
         self.state: State = IdleState(self)
-        self.no_face_count: int = 0
-        self.max_no_face_count: int = 100
-        self.pushover_service = None
-        self.message: str = ''
+        self.no_face_count: Optional[int] = None
+        self.max_no_face_count: Optional[int] = None
+        self.pushover_service: NotificationInterface = pushover_service
+        self.message: Optional[str] = None
 
     @abstractmethod
     def process_frame(self, person_detected: bool, face_detected: bool) -> None:

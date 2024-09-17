@@ -1,8 +1,8 @@
 ---
 # Configuration settings for the application
 video:
-  scale_factor: 1
-  buffer_size: 100
+  scale_factor: 0.25
+  buffer_size: 1
   frame_rate: 30
   image_width: 1920
   image_height: 1080

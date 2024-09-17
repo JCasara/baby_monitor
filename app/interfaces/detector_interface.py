@@ -1,5 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from app.interfaces.camera_interface import CameraInterface
 from app.interfaces.detection_interface import DetectionInterface
@@ -12,7 +13,7 @@ class VideoDetector(ABC):
         self.detection_service: DetectionInterface = detection_service
         self.state_manager: StateManagerInterface = state_manager
         self.lock: threading.Lock = threading.Lock()
-        self.running: bool = True
+        self.running: Optional[bool] = None
         
     @abstractmethod
     def start(self):

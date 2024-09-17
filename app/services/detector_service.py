@@ -1,51 +1,65 @@
 import threading
 import time
+from typing import List, Tuple
 
 import cv2
+import numpy as np
 
 from app.interfaces.camera_interface import CameraInterface
 from app.interfaces.detection_interface import DetectionInterface
-from app.interfaces.state_manager_interface import StateManagerInterface
+from app.interfaces.state_manager_interface import State, StateManagerInterface
 
+GREEN: Tuple[int, int, int] = (0, 255, 0)
+LINE_THICKNESS: int = 2
+FONT_FACE: int = cv2.FONT_HERSHEY_SIMPLEX
+FONT_SCALE: int = 1
 
 class DetectorService:
     def __init__(self, camera_service: CameraInterface, detection_service: DetectionInterface, state_manager: StateManagerInterface):
         self.camera_service: CameraInterface = camera_service
         self.detection_service: DetectionInterface = detection_service
         self.state_manager: StateManagerInterface = state_manager
-        self.lock: threading.Lock = threading.Lock()
         self.running: bool = True
         self.fps: float = 0
         self.frame_count: int = 0
         self.start_time: float = time.time()
+        self.condition = threading.Condition()
 
-    def _draw_bboxes(self, bbox_locations, frame) -> None:
+        self.camera_service.set_frame_callback(self.frame_available)
+
+    def _draw_bboxes(self, bbox_locations: List[Tuple[int, int, int, int]], frame: np.ndarray) -> None:
         """Draw bounding boxes for detections."""
         for (top, right, bottom, left) in bbox_locations:
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+            cv2.rectangle(frame, (left, top), (right, bottom), GREEN, LINE_THICKNESS)
 
     def _draw_annotations(self, frame) -> None:
         """Draw annotations on image that indicate state."""
-        state = self.state_manager.get_state()
-        annotation_text = state.get_annotation()
-        color = state.get_color()
+        ORG: Tuple[int, int] = (10, 50) # Bottom-left corner of the text string in the image
 
-        cv2.putText(frame, annotation_text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+        state: State = self.state_manager.get_state()
+        annotation_text: str = state.get_annotation()
+        color: Tuple[int, int, int] = state.get_color()
+
+        cv2.putText(frame, annotation_text, ORG, FONT_FACE, FONT_SCALE, color, LINE_THICKNESS)
 
     def _process_frame(self) -> None:
         """Process frame by performing detections."""
+        # SLEEP_TIME: float = 0.01
         while self.running:
-            with self.lock:
+            with self.condition:
+                # Wait until notified of a new frame
+                self.condition.wait()
+
+            with self.camera_service.lock:
                 if len(self.camera_service.frame_buffer) > 0:
-                    frame = self.camera_service.frame_buffer.popleft()
+                    frame = self.camera_service.frame_buffer.pop()
                 else:
-                    time.sleep(0.0333)
                     continue
 
-                person_bboxes = self.detection_service.detect_persons(frame)
+                person_bboxes: List[Tuple[int, int, int, int]] = self.detection_service.detect_persons(frame)
                 if person_bboxes:
                     self._draw_bboxes(person_bboxes, frame)
-                    face_bboxes = self.detection_service.detect_faces(frame)
+                    face_bboxes: List[Tuple[int, int, int, int]] = self.detection_service.detect_faces(frame)
                     if face_bboxes:
                         self._draw_bboxes(face_bboxes, frame)
                         self.state_manager.process_frame(True, True)
@@ -53,12 +67,21 @@ class DetectorService:
                         self.state_manager.process_frame(True, False)
                 else:
                     self.state_manager.process_frame(False, False)
+
                 self._draw_annotations(frame)
+
+                # Append processed frame back to frame_buffer
+                # with self.camera_service.lock:
                 self.camera_service.frame_buffer.append(frame)
                         
+    def frame_available(self):
+        """Call this method when a new frame is added to the buffer."""
+        with self.condition:
+            self.condition.notify()  # Notify waiting threads
+
     def start(self) -> None:
         """Start video detector thread."""
-        self.thread = threading.Thread(target=self._process_frame)
+        self.thread: threading.Thread = threading.Thread(target=self._process_frame)
         self.thread.daemon = True
         self.thread.start()
 

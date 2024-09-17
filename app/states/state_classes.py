@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
+from typing import Tuple
 
+WHITE: Tuple[int, int, int] = (255, 255, 255)
+RED: Tuple[int, int, int] = (255, 0, 0)
+GREEN: Tuple[int, int, int] = (0, 255, 0)
+BLUE: Tuple[int, int, int] = (0, 0, 255)
 
 class State(ABC):
     def __init__(self, state_manager):
@@ -26,7 +31,7 @@ class IdleState(State):
         return "Idle"
     
     def get_color(self) -> tuple:
-        return (255, 255, 255)
+        return WHITE
 
 class PersonDetectedState(State):
     def process_frame(self, person_detected: bool, face_detected: bool):
@@ -44,7 +49,7 @@ class PersonDetectedState(State):
         return "Person"
     
     def get_color(self) -> tuple:
-        return (255, 0, 0)
+        return RED
 
 class FaceDetectedState(State):
     def process_frame(self, person_detected: bool, face_detected: bool):
@@ -55,7 +60,7 @@ class FaceDetectedState(State):
         return "Face"
     
     def get_color(self) -> tuple:
-        return (0, 255, 0)
+        return GREEN
 
 class NoFaceDetectedState(State):
     def process_frame(self, person_detected: bool, face_detected: bool):
@@ -70,4 +75,4 @@ class NoFaceDetectedState(State):
         return "Face Not Detected"
     
     def get_color(self) -> tuple:
-        return (0, 0, 255)
+        return BLUE
