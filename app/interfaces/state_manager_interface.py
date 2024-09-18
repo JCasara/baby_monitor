@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from app.interfaces.notification_interface import NotificationInterface
 from app.states.state_classes import IdleState, State

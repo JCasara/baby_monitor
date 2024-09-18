@@ -1,18 +1,14 @@
 import threading
 import time
 from collections import deque
-from typing import Any, Generator, Optional, Tuple
+from typing import Any, Generator
 
 import cv2
 import numpy as np
 
 from app.interfaces.camera_interface import CameraInterface
+from app.utils.opencv_utils import display_fps, encode_image
 
-ORG: Tuple[int, int] = (10, 30)
-FONT_FACE: int = cv2.FONT_HERSHEY_SIMPLEX
-FONT_SCALE: int = 1
-RED: Tuple[int, int, int] = (255, 0, 0)
-LINE_THICKNESS: int = 2
 
 class OpenCVCameraService(CameraInterface):
     def __init__(self, video_config: dict):
@@ -52,12 +48,7 @@ class OpenCVCameraService(CameraInterface):
         elapsed_time: float = time.time() - self.start_time
         if elapsed_time > 0:
             self.fps = self.frame_count / elapsed_time
-
-    def _display_fps(self, frame) -> None:
-        """Display frame rate using cv2."""
-        fps_text: str = f"FPS: {self.fps:.2f}"
-        cv2.putText(frame, fps_text, ORG, FONT_FACE, FONT_SCALE, RED, LINE_THICKNESS)
-
+ 
     def _capture_frame(self) -> None:
         """Capture a frame from the camera using opencv."""
         while self.running:
@@ -69,7 +60,7 @@ class OpenCVCameraService(CameraInterface):
             frame = cv2.flip(frame, 1) # Mirror image about y-axis
 
             self._calculate_fps()
-            self._display_fps(frame)
+            display_fps(frame, self.fps)
 
             with self.lock:
                 self.frame_buffer.append(frame)
@@ -82,7 +73,7 @@ class OpenCVCameraService(CameraInterface):
             frame = self.get_frame()
             if frame is None:
                 continue
-            ret, encoded_data = cv2.imencode('.jpg', frame)
+            ret, encoded_data = encode_image(frame)
             if ret:
                 byte_data = encoded_data.tobytes()
                 yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
@@ -91,7 +82,7 @@ class OpenCVCameraService(CameraInterface):
         """Sets a callback function to indicate when the frame is ready."""
         self.frame_callback = callback
 
-    def get_frame(self) -> Optional[np.ndarray]:
+    def get_frame(self) -> None | np.ndarray:
         """Get frame from frame_bufer."""
         with self.lock:
             if len(self.frame_buffer) > 0:

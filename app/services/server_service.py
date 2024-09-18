@@ -4,16 +4,18 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.interfaces.camera_interface import CameraInterface
+from app.interfaces.detector_interface import DetectorInterface
 from app.interfaces.server_interface import ServerInterface
 from app.interfaces.state_manager_interface import StateManagerInterface
 
 
 class ServerService(ServerInterface):
-    def __init__(self, config: dict, camera_service: CameraInterface, state_manager: StateManagerInterface):
+    def __init__(self, config: dict, camera_service: CameraInterface, state_manager: StateManagerInterface, detector_service: DetectorInterface):
         self.app = FastAPI()
         self.server_config: dict = config['server']
         self.video_config: dict = config['video']
         self.camera_service: CameraInterface = camera_service
+        self.detector_service: DetectorInterface = detector_service
         self.frame_rate: int = self.camera_service.frame_rate
         self.state_manager: StateManagerInterface = state_manager
         self.templates: Jinja2Templates = Jinja2Templates(directory="templates")
@@ -25,8 +27,9 @@ class ServerService(ServerInterface):
 
     async def video_feed(self) -> StreamingResponse:
         """Video feed page of the server."""
-        return StreamingResponse(self.camera_service.generate_frames(),
+        return StreamingResponse(self.detector_service.generate_frames(),
                                  media_type='multipart/x-mixed-replace; boundary=frame')
+        # return StreamingResponse(self.camera_service.generate_frames(), media_type='video/MP2T')
 
     async def index(self, request: Request) -> HTMLResponse:
         """Main page of server."""

@@ -1,7 +1,5 @@
-from typing import Optional
-
-from app.interfaces.state_manager_interface import StateManagerInterface
 from app.interfaces.notification_interface import NotificationInterface
+from app.interfaces.state_manager_interface import StateManagerInterface
 from app.states.state_classes import IdleState, State
 
 

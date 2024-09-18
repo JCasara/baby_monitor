@@ -20,7 +20,7 @@ if __name__ == "__main__":
     state_manager = StateManagerService(config=config, pushover_service=pushover_service)
     camera_service = CameraService(config['video'])
     detector = DetectorService(camera_service=camera_service, detection_service=detection_service, state_manager=state_manager) 
-    server = ServerService(config=config, camera_service=camera_service, state_manager=state_manager)
+    server = ServerService(config=config, camera_service=camera_service, state_manager=state_manager, detector_service=detector)
 
     # Start threads
     camera_service.start()

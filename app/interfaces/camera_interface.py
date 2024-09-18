@@ -1,7 +1,7 @@
 import threading
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Generator, Optional
+from typing import Any, Generator
 
 import numpy as np
 
@@ -22,7 +22,7 @@ class CameraInterface(ABC):
         pass
 
     @abstractmethod
-    def get_frame(self) -> Optional[np.ndarray]:
+    def get_frame(self) -> None | np.ndarray:
         """Gets frame from frame_buffer."""
         pass
 

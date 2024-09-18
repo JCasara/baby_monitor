@@ -1,10 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Tuple
 
-WHITE: Tuple[int, int, int] = (255, 255, 255)
-RED: Tuple[int, int, int] = (255, 0, 0)
-GREEN: Tuple[int, int, int] = (0, 255, 0)
-BLUE: Tuple[int, int, int] = (0, 0, 255)
 
 class State(ABC):
     def __init__(self, state_manager):
