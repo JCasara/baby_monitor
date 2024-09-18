@@ -1,7 +1,7 @@
 import threading
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Optional
+from typing import Any, Generator, Optional
 
 import numpy as np
 
@@ -17,13 +17,13 @@ class CameraInterface(ABC):
         self.frame_rate: int = 0
 
     @abstractmethod
-    def get_frame(self) -> Optional[np.ndarray]:
-        """Gets frame from frame_buffer."""
+    def generate_frames(self) -> Generator[Any, Any, Any]:
+        """Generate a frame for the video server."""
         pass
 
     @abstractmethod
-    def start(self) -> None:
-        """Starts camera service thread."""
+    def get_frame(self) -> Optional[np.ndarray]:
+        """Gets frame from frame_buffer."""
         pass
 
     @abstractmethod
@@ -34,4 +34,9 @@ class CameraInterface(ABC):
     @abstractmethod
     def set_frame_callback(self, callback) -> None:
         """Sets frame callback."""
+        pass
+
+    @abstractmethod
+    def start(self) -> None:
+        """Starts camera service thread."""
         pass

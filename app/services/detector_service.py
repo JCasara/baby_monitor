@@ -61,9 +61,9 @@ class DetectorService:
 
             with self.camera_service.lock:
                 person_bboxes = asyncio.run(self.detection_service.detect_persons(frame))
+                face_bboxes = asyncio.run(self.detection_service.detect_faces(frame))
                 if person_bboxes:
                     self._draw_bboxes(person_bboxes, frame)
-                    face_bboxes: List[Tuple[int, int, int, int]] = asyncio.run(self.detection_service.detect_faces(frame))
                     if face_bboxes:
                         self._draw_bboxes(face_bboxes, frame)
                         self.state_manager.process_frame(True, True)
@@ -75,7 +75,7 @@ class DetectorService:
                 self._draw_annotations(frame)
 
                 # Append processed frame back to frame_buffer
-                self.camera_service.frame_buffer.appendleft(frame)
+                self.camera_service.frame_buffer.append(frame)
                         
     def frame_available(self):
         """Call this method when a new frame is added to the buffer."""

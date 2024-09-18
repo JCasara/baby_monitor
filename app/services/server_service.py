@@ -1,7 +1,3 @@
-import asyncio
-from typing import Any, AsyncGenerator
-
-import cv2
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -27,25 +23,9 @@ class ServerService(ServerInterface):
         self.app.add_api_route("/", self.index, methods=["GET"])
         self.app.add_api_route("/update_threshold", self.update_threshold, methods=["POST"])
 
-    async def generate_frames(self) -> AsyncGenerator[bytes, Any]:
-        """Generate a frame for the video server."""
-        while self.camera_service.running:
-            frame = await asyncio.to_thread(self.camera_service.get_frame)
-            # frame = self.camera_service.get_frame()
-            if frame is None:
-                continue
-            # Is there a better way to encode the image data, or can this be passed back
-            # to the camera_service?
-            ret, encoded_data = cv2.imencode('.jpg', frame)
-            if ret:
-                byte_data = encoded_data.tobytes()
-                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
-            await asyncio.sleep(0.01)
-
     async def video_feed(self) -> StreamingResponse:
         """Video feed page of the server."""
-        async_gen = self.generate_frames()
-        return StreamingResponse(async_gen,
+        return StreamingResponse(self.camera_service.generate_frames(),
                                  media_type='multipart/x-mixed-replace; boundary=frame')
 
     async def index(self, request: Request) -> HTMLResponse:

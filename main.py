@@ -15,7 +15,7 @@ if __name__ == "__main__":
     config = config_loader.load_config("config/config.yaml")
 
     # Initialize components
-    detection_service = DetectionService(config['video'].get('scale_factor', 0.5))
+    detection_service = DetectionService(config['video'].get('scale_factor', 0.25))
     pushover_service = PushoverService(api_token=config['pushover'].get('API_TOKEN'), user_key=config['pushover'].get('USER_KEY'))
     state_manager = StateManagerService(config=config, pushover_service=pushover_service)
     camera_service = CameraService(config['video'])
@@ -24,10 +24,10 @@ if __name__ == "__main__":
 
     # Start threads
     camera_service.start()
-    # detector.start()
+    detector.start()
 
     try:
         server.run()
     finally:
         camera_service.release_resources()
-        # detector.release_resources()
+        detector.release_resources()

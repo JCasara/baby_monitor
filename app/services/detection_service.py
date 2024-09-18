@@ -28,8 +28,8 @@ class DetectionService(DetectionInterface):
         """Returns a list of bounding box coordinates for faces detected in the frame."""
         # Is there another way to resize without cv2? what about conversion to rgb?
         small_frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
-        rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(rgb_frame)
+        # rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(small_frame)
         return [self._scale_bbox(top, right, bottom, left) for (top, right, bottom, left) in face_locations]
 
     async def detect_objects(self, frame: np.ndarray, object_class: str) -> List[Tuple[int, int, int, int]]:
