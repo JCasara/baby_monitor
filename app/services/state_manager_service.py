@@ -8,10 +8,10 @@ from app.states.state_classes import IdleState, State
 class StateManagerService(StateManagerInterface):
     def __init__(self, config: dict, pushover_service: NotificationInterface):
         self.state: State = IdleState(self)
-        self.no_face_count: Optional[int] = 0
-        self.max_no_face_count: Optional[int] = config['threshold'].get('detection_threshold')
+        self.no_face_count: int = 0
+        self.max_no_face_count: int = config['threshold'].get('detection_threshold', 100)
         self.pushover_service: NotificationInterface = pushover_service
-        self.message: Optional[str] = config['pushover'].get('MESSAGE', 'No message provided!')
+        self.message: str = config['pushover'].get('MESSAGE', 'No message provided!')
 
     def set_state(self, state: State) -> None:
         """Set a new state."""

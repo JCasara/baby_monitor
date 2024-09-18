@@ -13,7 +13,7 @@ class VideoDetector(ABC):
         self.detection_service: DetectionInterface = detection_service
         self.state_manager: StateManagerInterface = state_manager
         self.lock: threading.Lock = threading.Lock()
-        self.running: Optional[bool] = None
+        self.running: bool = True
         
     @abstractmethod
     def start(self):

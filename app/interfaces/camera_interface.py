@@ -9,7 +9,7 @@ import numpy as np
 class CameraInterface(ABC):
     @abstractmethod
     def __init__(self, video_config: dict):
-        self.running: Optional[bool] = None
+        self.running: bool = True
         self.lock: threading.Lock = threading.Lock()
         self.frame_buffer: deque = deque()
         self.buffer_size: int = 0
