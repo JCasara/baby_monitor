@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, AsyncGenerator, Coroutine, Optional
+from typing import Any, AsyncGenerator
 
 import cv2
 from fastapi import FastAPI, Form, HTTPException, Request
@@ -17,8 +17,8 @@ class ServerService(ServerInterface):
         self.app = FastAPI()
         self.server_config: dict = config['server']
         self.video_config: dict = config['video']
-        self.frame_rate: Optional[int] = self.video_config.get('frame_rate', 30)
         self.camera_service: CameraInterface = camera_service
+        self.frame_rate: int = self.camera_service.frame_rate
         self.state_manager: StateManagerInterface = state_manager
         self.templates: Jinja2Templates = Jinja2Templates(directory="templates")
         self.app.mount('/static', StaticFiles(directory='static'), name='static')
@@ -34,6 +34,8 @@ class ServerService(ServerInterface):
             # frame = self.camera_service.get_frame()
             if frame is None:
                 continue
+            # Is there a better way to encode the image data, or can this be passed back
+            # to the camera_service?
             ret, encoded_data = cv2.imencode('.jpg', frame)
             if ret:
                 byte_data = encoded_data.tobytes()

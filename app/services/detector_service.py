@@ -30,11 +30,15 @@ class DetectorService:
 
     def _draw_bboxes(self, bbox_locations: List[Tuple[int, int, int, int]], frame: np.ndarray) -> None:
         """Draw bounding boxes for detections."""
+        # Is there another way to draw the bboxes? Or can the bbox_locations be passed back to
+        # the camera_service?
         for (top, right, bottom, left) in bbox_locations:
             cv2.rectangle(frame, (left, top), (right, bottom), GREEN, LINE_THICKNESS)
 
     def _draw_annotations(self, frame) -> None:
         """Draw annotations on image that indicate state."""
+        # Is there another way to draw the annotations? Or can the annotations be passed back to
+        # the camera_service?
         ORG: Tuple[int, int] = (10, 50) # Bottom-left corner of the text string in the image
 
         state: State = self.state_manager.get_state()

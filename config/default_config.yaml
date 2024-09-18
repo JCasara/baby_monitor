@@ -6,6 +6,7 @@ video:
   frame_rate: 30
   image_width: 1920
   image_height: 1080
+  fourcc: "MJPG"
 
 threshold:
   detection_threshold: 100

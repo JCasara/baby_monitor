@@ -23,18 +23,21 @@ class OpenCVCameraService(CameraInterface):
         self.running: bool = True
         self.lock: threading.Lock = threading.Lock()
 
-        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_config.get('frame_width', 640))
-        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_config.get('frame_height', 480))
+        self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_config.get('image_width', 640))
+        self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_config.get('image_height', 480))
         self.video_capture.set(cv2.CAP_PROP_FPS, video_config.get('frame_rate', 30))
-        self.video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
+        self.video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*video_config.get('fourcc', 'MJPG')))
 
-        print(f"HeightxWidth: {self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)} x {self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)}")
+        # Store actual camera properties
+        self.frame_rate: int = int(self.video_capture.get(cv2.CAP_PROP_FPS))
+
+        # Print actual camera property values
+        print(f"Height x Width: {self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)} x {self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)}")
         print(f"Frame Rate: {self.video_capture.get(cv2.CAP_PROP_FPS)}")
         print(f"FOURCC: {self.video_capture.get(cv2.CAP_PROP_FOURCC)}")
 
-        self.scale_factor: Optional[int] = video_config.get('scale_factor')
+        self.scale_factor: int = video_config.get('scale_factor', 0.5)
         self.buffer_size: int = video_config.get('buffer_size', 100)
-        self.frame_rate: Optional[int] = video_config.get('frame_rate')
         self.frame_buffer: deque = deque(maxlen=self.buffer_size)
 
         self.frame_count: int = 0

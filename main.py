@@ -24,10 +24,10 @@ if __name__ == "__main__":
 
     # Start threads
     camera_service.start()
-    detector.start()
+    # detector.start()
 
     try:
         server.run()
     finally:
         camera_service.release_resources()
-        detector.release_resources()
+        # detector.release_resources()

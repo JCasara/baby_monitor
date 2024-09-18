@@ -14,6 +14,7 @@ class CameraInterface(ABC):
         self.frame_buffer: deque = deque()
         self.buffer_size: int = 0
         self.video_config: dict = video_config
+        self.frame_rate: int = 0
 
     @abstractmethod
     def get_frame(self) -> Optional[np.ndarray]:

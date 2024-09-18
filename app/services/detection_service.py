@@ -26,6 +26,7 @@ class DetectionService(DetectionInterface):
 
     def _detect_faces_sync(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """Returns a list of bounding box coordinates for faces detected in the frame."""
+        # Is there another way to resize without cv2? what about conversion to rgb?
         small_frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
         rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
         face_locations = face_recognition.face_locations(rgb_frame)
@@ -37,6 +38,7 @@ class DetectionService(DetectionInterface):
 
     def _detect_objects_sync(self, frame: np.ndarray, object_class: str) -> List[Tuple[int, int, int, int]]:
         """Synchronous detection logic for objects."""
+        # Is there another way to resize without cv2? what about conversion to rgb?
         small_frame = cv2.resize(frame, (0, 0), fx=self.scale_factor, fy=self.scale_factor)
         yolo_results = self.yolo_model(small_frame)
         yolo_locations = yolo_results.pandas().xyxy[0]
