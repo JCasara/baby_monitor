@@ -18,7 +18,9 @@ cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 cap.set(cv2.CAP_PROP_FPS, frame_rate)
 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
-
+cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # Manual exposure
+cap.set(cv2.CAP_PROP_GAIN, 0)  # Fixed gain
+cap.set(cv2.CAP_PROP_AUTO_WB, 0)  # Disable auto white balance
 # print("Width:", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 # print("Height:", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 # print("FPS (Set):", cap.get(cv2.CAP_PROP_FPS))
@@ -29,11 +31,13 @@ def gen_frames():
     last_time = time.time()
     fps = 0
     while True:
+        start_reading = time.time()
         success, frame = cap.read()
+        read_time = time.time() - start_reading
+        print(f"Read time: {read_time:.4f} seconds")
         if not success:
             break
 
-        # Update FPS calculation
         fps_frame_count += 1
         current_time = time.time()
         elapsed_time = current_time - last_time
@@ -43,14 +47,19 @@ def gen_frames():
             last_time = current_time
             fps_frame_count = 0
         
-        # Put FPS on the frame
         cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         
-        # Encode frame as JPEG
+        # Measure encoding time
+        start_encoding = time.time()
         _, buffer = cv2.imencode('.jpg', frame)
+        encoding_time = time.time() - start_encoding
+
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
+        # Print or log encoding time if necessary
+        # print(f"Encoding time: {encoding_time:.4f} seconds")
 
 @app.get("/video_feed")
 def video_feed():
