@@ -1,9 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Generator
-
-import numpy as np
 
 
 class CameraInterface(ABC):
@@ -15,16 +12,6 @@ class CameraInterface(ABC):
         self.buffer_size: int = 0
         self.video_config: dict = video_config
         self.frame_rate: int = 0
-
-    @abstractmethod
-    def generate_frames(self) -> Generator[Any, Any, Any]:
-        """Generate a frame for the video server."""
-        pass
-
-    @abstractmethod
-    def get_frame(self) -> None | np.ndarray:
-        """Gets frame from frame_buffer."""
-        pass
 
     @abstractmethod
     def release_resources(self) -> None:

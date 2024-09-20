@@ -1,9 +1,6 @@
 import threading
 from abc import ABC, abstractmethod
 from collections import deque
-from typing import Any, Generator
-
-import numpy as np
 
 from app.interfaces.camera_interface import CameraInterface
 from app.interfaces.detection_interface import DetectionInterface
@@ -19,17 +16,6 @@ class DetectorInterface(ABC):
         self.running: bool = True
         self.frame_buffer: deque = deque()
         
-    @abstractmethod
-    def generate_frames(self) -> Generator[Any, Any, Any]:
-        """Generate a frame for the video server."""
-        pass
-
-    @abstractmethod
-    # def get_frame(self) -> Optional[np.ndarray]:
-    def get_frame(self) -> None | np.ndarray:
-        """Get frame from frame_bufer."""
-        pass
-                        
     @abstractmethod
     def frame_available(self):
         """Call this method when a new frame is added to the buffer."""

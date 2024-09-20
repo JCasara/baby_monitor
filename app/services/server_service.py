@@ -1,3 +1,6 @@
+from typing import Any, Generator
+
+import numpy as np
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +10,7 @@ from app.interfaces.camera_interface import CameraInterface
 from app.interfaces.detector_interface import DetectorInterface
 from app.interfaces.server_interface import ServerInterface
 from app.interfaces.state_manager_interface import StateManagerInterface
+from app.utils.opencv_utils import encode_image
 
 
 class ServerService(ServerInterface):
@@ -25,9 +29,11 @@ class ServerService(ServerInterface):
         self.app.add_api_route("/", self.index, methods=["GET"])
         self.app.add_api_route("/update_threshold", self.update_threshold, methods=["POST"])
 
+        self.running = True
+
     async def video_feed(self) -> StreamingResponse:
         """Video feed page of the server."""
-        return StreamingResponse(self.detector_service.generate_frames(),
+        return StreamingResponse(self.generate_frames(self.camera_service),
                                  media_type='multipart/x-mixed-replace; boundary=frame')
         # return StreamingResponse(self.camera_service.generate_frames(), media_type='video/MP2T')
 
@@ -55,6 +61,24 @@ class ServerService(ServerInterface):
             raise HTTPException(status_code=400, detail="Invalid threshold value")
 
         return RedirectResponse(url='/', status_code=303)
+
+    def generate_frames(self, source) -> Generator[Any, Any, Any]:
+        """Generate a frame for the video server."""
+        while self.running:
+            frame = self.get_frame(source)
+            if frame is None:
+                continue
+            ret, encoded_data = encode_image(frame)
+            if ret:
+                byte_data = encoded_data.tobytes()
+                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
+
+    def get_frame(self, source) -> None | np.ndarray:
+        """Get frame from frame_bufer."""
+        with source.lock:
+            if len(source.frame_buffer) > 0:
+                return source.frame_buffer.popleft()
+            return None
 
     def run(self) -> None:
         """Runs the FastAPI server with uvicorn."""

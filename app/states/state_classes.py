@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+from app.utils.constants import BLUE, GREEN, RED, WHITE
+
 
 class State(ABC):
     def __init__(self, state_manager):

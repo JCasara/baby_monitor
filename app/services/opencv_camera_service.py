@@ -1,13 +1,11 @@
 import threading
 import time
 from collections import deque
-from typing import Any, Generator
 
 import cv2
-import numpy as np
 
 from app.interfaces.camera_interface import CameraInterface
-from app.utils.opencv_utils import display_fps, encode_image
+from app.utils.opencv_utils import display_fps
 
 
 class OpenCVCameraService(CameraInterface):
@@ -67,26 +65,9 @@ class OpenCVCameraService(CameraInterface):
                 if self.frame_callback:
                     self.frame_callback()
 
-    def generate_frames(self) -> Generator[Any, Any, Any]:
-        """Generate a frame for the video server."""
-        while self.running:
-            frame = self.get_frame()
-            if frame is None:
-                continue
-            ret, encoded_data = encode_image(frame)
-            if ret:
-                byte_data = encoded_data.tobytes()
-                yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
-
     def set_frame_callback(self, callback):
         """Sets a callback function to indicate when the frame is ready."""
         self.frame_callback = callback
-
-    def get_frame(self) -> None | np.ndarray:
-        """Get frame from frame_bufer."""
-        with self.lock:
-            if len(self.frame_buffer) > 0:
-                return self.frame_buffer.popleft()
 
     def start(self) -> None:
         """Start stream thread."""
