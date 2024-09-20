@@ -22,6 +22,22 @@ class OpenCVCameraService(CameraInterface):
         self.video_capture.set(cv2.CAP_PROP_FPS, video_config.get('frame_rate', 30))
         self.video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*video_config.get('fourcc', 'MJPG')))
 
+        # User Controls
+        self.video_capture.set(cv2.CAP_PROP_BRIGHTNESS, 120)                # Brightness
+        self.video_capture.set(cv2.CAP_PROP_CONTRAST, 32)                   # Contrast
+        self.video_capture.set(cv2.CAP_PROP_SATURATION, 64)                 # Saturation
+        self.video_capture.set(cv2.CAP_PROP_HUE, 0)                          # Hue
+        self.video_capture.set(cv2.CAP_PROP_AUTO_WB, 1)                     # White balance automatic (0 = off)
+        self.video_capture.set(cv2.CAP_PROP_GAMMA, 150)                      # Gamma
+        self.video_capture.set(cv2.CAP_PROP_GAIN, 8)                         # Gain
+        self.video_capture.set(cv2.CAP_PROP_SHARPNESS, 2)                    # Sharpness
+        self.video_capture.set(cv2.CAP_PROP_BACKLIGHT, 2)                    # Backlight compensation
+
+        # Camera Controls
+        # (Changing Auto_Exposure to manual and keeping Absolute Exposure time short is what enables 30fps)
+        self.video_capture.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)                # Auto exposure (1 = manual mode)
+        self.video_capture.set(cv2.CAP_PROP_EXPOSURE, 333)                    # Exposure time absolute
+
         # Store actual camera properties
         self.frame_rate: int = int(self.video_capture.get(cv2.CAP_PROP_FPS))
 

@@ -54,7 +54,7 @@ class DetectorService(DetectorInterface):
             else:
                 self.state_manager.process_frame(True, False)
 
-            draw_annotations(frame, self.state_manager.state)
+            draw_annotations(frame, self.state_manager.get_state())
 
             # Append processed frame back to frame_buffer
             with self.lock:
