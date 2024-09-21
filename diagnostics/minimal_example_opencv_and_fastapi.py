@@ -1,6 +1,7 @@
 import time
 
 import cv2
+import face_recognition
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
@@ -18,14 +19,31 @@ cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*FOURCC))
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 cap.set(cv2.CAP_PROP_FPS, frame_rate)
-cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)  # Manual exposure
-cap.set(cv2.CAP_PROP_GAIN, 0)  # Fixed gain
-cap.set(cv2.CAP_PROP_AUTO_WB, 0)  # Disable auto white balance
+
+# User Controls
+cap.set(cv2.CAP_PROP_BRIGHTNESS, 128)                # Brightness
+cap.set(cv2.CAP_PROP_CONTRAST, 64)                   # Contrast
+cap.set(cv2.CAP_PROP_SATURATION, 64)                 # Saturation
+cap.set(cv2.CAP_PROP_HUE, 0)                          # Hue
+cap.set(cv2.CAP_PROP_AUTO_WB, 1)                     # White balance automatic (0 = off)
+cap.set(cv2.CAP_PROP_GAMMA, 150)                      # Gamma
+cap.set(cv2.CAP_PROP_GAIN, 8)                         # Gain
+cap.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, 4600)     # White balance temperature
+cap.set(cv2.CAP_PROP_SHARPNESS, 7)                    # Sharpness
+cap.set(cv2.CAP_PROP_BACKLIGHT, 2)                    # Backlight compensation
+cap.set(cv2.CAP_PROP_HW_ACCELERATION,0)
+
+# Camera Controls
+cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)                # Auto exposure (1 = manual mode)
+cap.set(cv2.CAP_PROP_EXPOSURE, 333)                    # Exposure time absolute
+
 print("Width:", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 print("Height:", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 print("FPS (Set):", cap.get(cv2.CAP_PROP_FPS))
 print("FOURCC:", cap.get(cv2.CAP_PROP_FOURCC))
 print("FOURCC SETTING:", cv2.VideoWriter_fourcc(*FOURCC))
+
+scale_factor = 0.25
 
 def gen_frames():
     fps_frame_count = 0
@@ -38,6 +56,23 @@ def gen_frames():
         print(f"Read time: {read_time:.4f} seconds")
         if not success:
             break
+
+        start_detection = time.time()
+        # Perform face detections
+        small_frame = cv2.resize(frame, (0, 0), fx=scale_factor, fy=scale_factor)
+        rgb_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+        face_locations = face_recognition.face_locations(rgb_frame)
+
+        # Get bbox for faces
+        bbox = [(int(top / scale_factor), int(right / scale_factor), int(bottom / scale_factor), int(left / scale_factor)) for (top, right, bottom, left) in face_locations]
+
+        # Draw bbox for faces on image
+        for (top, right, bottom, left) in bbox:
+            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+
+        detection_time = time.time() - start_detection
+        print(f"Detection time: {detection_time:.4f} seconds")
+
 
         fps_frame_count += 1
         current_time = time.time()
