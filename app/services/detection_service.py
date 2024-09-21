@@ -50,3 +50,10 @@ class DetectionService(DetectionInterface):
     async def detect_dogs(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """Convenience function for detecting dogs."""
         return await self.detect_objects(frame, 'dog')
+
+    async def run_detection(self, frame: np.ndarray) -> Tuple[List[Tuple[int, int, int, int]], List[Tuple[int, int, int, int]]]:
+        person_bboxes, face_bboxes = await asyncio.gather(
+            self.detect_persons(frame),
+            self.detect_faces(frame)
+        )
+        return person_bboxes, face_bboxes

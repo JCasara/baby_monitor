@@ -19,9 +19,9 @@ class DetectorService(DetectorInterface):
         self.fps: float = 0
         self.frame_count: int = 0
         self.start_time: float = time.time()
-        self.condition = threading.Condition()
-        self.frame_buffer = deque()
         self.lock = threading.Lock()
+        self.condition = threading.Condition(self.lock)
+        self.frame_buffer = deque(maxlen=100)
 
         self.camera_service.set_frame_callback(self.frame_available)
  
@@ -36,23 +36,23 @@ class DetectorService(DetectorInterface):
             with self.camera_service.lock:
                 frame = None
                 if len(self.camera_service.frame_buffer) > 0:
-                    frame = self.camera_service.frame_buffer.popleft()
+                    frame = self.camera_service.frame_buffer.pop()
 
             if frame is None or frame.size == 0:
                 continue
 
-            # with self.camera_service.lock:
-            # person_bboxes = asyncio.run(self.detection_service.detect_persons(frame))
-            # if person_bboxes:
-            #     draw_bboxes(person_bboxes, frame)
+            # person_bboxes, face_bboxes = asyncio.run(self.detection_service.run_detection(frame))
+            person_bboxes = asyncio.run(self.detection_service.detect_persons(frame))
+            # face_bboxes = asyncio.run(self.detection_service.detect_faces(frame))
+            if person_bboxes:
+                draw_bboxes(person_bboxes, frame)
+            # if face_bboxes:
+            #     draw_bboxes(face_bboxes, frame)
+            #     self.state_manager.process_frame(True, True)
             # else:
-            #     self.state_manager.process_frame(False, False)
-            face_bboxes = asyncio.run(self.detection_service.detect_faces(frame))
-            if face_bboxes:
-                draw_bboxes(face_bboxes, frame)
-                self.state_manager.process_frame(True, True)
+            #     self.state_manager.process_frame(True, False)
             else:
-                self.state_manager.process_frame(True, False)
+                self.state_manager.process_frame(False, False)
 
             draw_annotations(frame, self.state_manager.get_state())
 

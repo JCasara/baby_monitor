@@ -14,7 +14,7 @@ cap = cv2.VideoCapture(0)
 frame_width = 640
 frame_height = 480
 frame_rate = 30  # Frames per second
-FOURCC = 'MJPG'
+FOURCC = 'YUYV'
 cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*FOURCC))
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
@@ -22,20 +22,20 @@ cap.set(cv2.CAP_PROP_FPS, frame_rate)
 
 # User Controls
 cap.set(cv2.CAP_PROP_BRIGHTNESS, 128)                # Brightness
-cap.set(cv2.CAP_PROP_CONTRAST, 64)                   # Contrast
+cap.set(cv2.CAP_PROP_CONTRAST, 32)                   # Contrast
 cap.set(cv2.CAP_PROP_SATURATION, 64)                 # Saturation
 cap.set(cv2.CAP_PROP_HUE, 0)                          # Hue
 cap.set(cv2.CAP_PROP_AUTO_WB, 1)                     # White balance automatic (0 = off)
-cap.set(cv2.CAP_PROP_GAMMA, 150)                      # Gamma
-cap.set(cv2.CAP_PROP_GAIN, 8)                         # Gain
+cap.set(cv2.CAP_PROP_GAMMA, 120)                      # Gamma
+cap.set(cv2.CAP_PROP_GAIN, 4)                         # Gain
 cap.set(cv2.CAP_PROP_WHITE_BALANCE_BLUE_U, 4600)     # White balance temperature
-cap.set(cv2.CAP_PROP_SHARPNESS, 7)                    # Sharpness
-cap.set(cv2.CAP_PROP_BACKLIGHT, 2)                    # Backlight compensation
-cap.set(cv2.CAP_PROP_HW_ACCELERATION,0)
+cap.set(cv2.CAP_PROP_SHARPNESS, 2)                    # Sharpness
+cap.set(cv2.CAP_PROP_BACKLIGHT, 0)                    # Backlight compensation
+# cap.set(cv2.CAP_PROP_HW_ACCELERATION,0)
 
 # Camera Controls
-cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 1)                # Auto exposure (1 = manual mode)
-cap.set(cv2.CAP_PROP_EXPOSURE, 333)                    # Exposure time absolute
+cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 3)                # Auto exposure (1 = manual mode)
+cap.set(cv2.CAP_PROP_EXPOSURE, 2500)                    # Exposure time absolute
 
 print("Width:", cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 print("Height:", cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -56,6 +56,8 @@ def gen_frames():
         print(f"Read time: {read_time:.4f} seconds")
         if not success:
             break
+
+        frame = cv2.flip(frame, 1)
 
         start_detection = time.time()
         # Perform face detections
@@ -89,14 +91,11 @@ def gen_frames():
         start_encoding = time.time()
         _, buffer = cv2.imencode('.jpg', frame)
         encoding_time = time.time() - start_encoding
-        # print(f"Encoding time: {encoding_time:.4f} seconds")
+        print(f"Encoding time: {encoding_time:.4f} seconds")
 
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-        
-        # Print or log encoding time if necessary
-        # print(f"Encoding time: {encoding_time:.4f} seconds")
 
 @app.get("/")
 def video_feed():

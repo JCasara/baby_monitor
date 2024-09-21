@@ -1,6 +1,5 @@
 from typing import Any, Generator
 
-import cv2
 import numpy as np
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
@@ -36,7 +35,6 @@ class ServerService(ServerInterface):
         """Video feed page of the server."""
         return StreamingResponse(self.generate_frames(self.detector_service),
                                  media_type='multipart/x-mixed-replace; boundary=frame')
-        # return StreamingResponse(self.camera_service.generate_frames(), media_type='video/MP2T')
 
     async def index(self, request: Request) -> HTMLResponse:
         """Main page of server."""
@@ -78,7 +76,8 @@ class ServerService(ServerInterface):
         """Get frame from frame_bufer."""
         with source.lock:
             if len(source.frame_buffer) > 0:
-                return source.frame_buffer.popleft()
+                print(f"detector buffer: {len(source.frame_buffer)}")
+                return source.frame_buffer.pop()
             return None
 
     def run(self) -> None:

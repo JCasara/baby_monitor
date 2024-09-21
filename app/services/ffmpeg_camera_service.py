@@ -1,10 +1,8 @@
-import select
 import subprocess
 import threading
 from collections import deque
 from typing import Any, Generator, Optional
 
-import cv2
 import numpy as np
 
 from app.interfaces.camera_interface import CameraInterface

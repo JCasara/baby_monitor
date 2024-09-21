@@ -34,3 +34,8 @@ class DetectionInterface(ABC):
     async def detect_dogs(self, frame: np.ndarray) -> List[Tuple[int, int, int, int]]:
         """Returns a list of bounding box coordinates for dogs detected in the frame."""
         pass
+
+    @abstractmethod
+    async def run_detection(self, frame: np.ndarray) -> Tuple[List[Tuple[int, int, int, int]], List[Tuple[int, int, int, int]]]:
+        """Runs both persons and face detections."""
+        pass
