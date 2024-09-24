@@ -23,13 +23,8 @@ class ServerInterface(ABC):
         pass
 
     @abstractmethod
-    def generate_frames(self, source) -> Generator[Any, Any, Any]:
-        """Generate a frame for the video server."""
-        pass
-
-    @abstractmethod
-    def get_frame(self, source) -> None | np.ndarray:
-        """Get frame from frame_bufer."""
+    async def serve_frame(self, frame: np.ndarray) -> Generator[Any, Any, Any]:
+        """Serve a frame to the video server."""
         pass
 
     @abstractmethod

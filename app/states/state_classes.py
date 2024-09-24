@@ -38,7 +38,7 @@ class PersonDetectedState(State):
             self.state_manager.no_face_count += 1
             if self.state_manager.no_face_count >= self.state_manager.max_no_face_count:
                 self.state_manager.set_state(NoFaceDetectedState(self.state_manager))
-                self.state_manager.pushover_service.send_notification(self.state_manager.message)
+                self.state_manager.notification_service.send_notification(self.state_manager.message)
             elif not person_detected:
                 self.state_manager.set_state(IdleState(self.state_manager))
     

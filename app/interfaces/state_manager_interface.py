@@ -6,11 +6,11 @@ from app.states.state_classes import IdleState, State
 
 class StateManagerInterface(ABC):
     @abstractmethod
-    def __init__(self, config: dict, pushover_service: NotificationInterface):
+    def __init__(self, config: dict, notification_service: NotificationInterface):
         self.state: State = IdleState(self)
         self.no_face_count: int = 0
         self.max_no_face_count: int = 0
-        self.pushover_service: NotificationInterface = pushover_service
+        self.notification_service: NotificationInterface = notification_service
         self.message: str = ""
 
     @abstractmethod

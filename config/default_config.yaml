@@ -15,7 +15,7 @@ server:
   host: "0.0.0.0"
   port: 8080
 
-pushover:
+notification:
   USER_KEY: ""
   API_TOKEN: ""
   MESSAGE: "Baby's face is covered, or baby has rolled over."

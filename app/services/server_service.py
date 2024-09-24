@@ -14,14 +14,14 @@ from app.utils.opencv_utils import encode_image
 
 
 class ServerService(ServerInterface):
-    def __init__(self, config: dict, camera_service: CameraInterface, state_manager: StateManagerInterface, detector_service: DetectorInterface):
+    def __init__(self, config: dict, camera_service: CameraInterface, state_manager_service: StateManagerInterface, detector_service: DetectorInterface):
         self.app = FastAPI()
+        self.camera_service: CameraInterface = camera_service
+        self.state_manager_service: StateManagerInterface = state_manager_service
+        self.detector_service: DetectorInterface = detector_service
         self.server_config: dict = config['server']
         self.video_config: dict = config['video']
-        self.camera_service: CameraInterface = camera_service
-        self.detector_service: DetectorInterface = detector_service
         self.frame_rate: int = self.camera_service.frame_rate
-        self.state_manager: StateManagerInterface = state_manager
         self.templates: Jinja2Templates = Jinja2Templates(directory="templates")
         self.app.mount('/static', StaticFiles(directory='static'), name='static')
 
@@ -33,7 +33,7 @@ class ServerService(ServerInterface):
 
     async def video_feed(self) -> StreamingResponse:
         """Video feed page of the server."""
-        return StreamingResponse(self.generate_frames(self.detector_service),
+        return StreamingResponse(self.serve_frame(),
                                  media_type='multipart/x-mixed-replace; boundary=frame')
 
     async def index(self, request: Request) -> HTMLResponse:
@@ -42,7 +42,7 @@ class ServerService(ServerInterface):
                                                {"request": request,
                                                 "image_width": self.video_config.get('image_width', 640),
                                                 "image_height": self.video_config.get('image_height', 480),
-                                                "current_threshold": self.state_manager.max_no_face_count})
+                                                "current_threshold": self.state_manager_service.max_no_face_count})
 
     async def update_threshold(self, threshold: int = Form(...)) -> RedirectResponse:
         """Updates the notification threshold (number of frames) for detections."""
@@ -55,30 +55,22 @@ class ServerService(ServerInterface):
             raise HTTPException(status_code=400, detail=f"Threshold must be between {min_threshold} and {max_threshold} frames.")
 
         try:
-            self.state_manager.max_no_face_count = threshold
+            self.state_manager_service.max_no_face_count = threshold
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid threshold value")
 
         return RedirectResponse(url='/', status_code=303)
 
-    def generate_frames(self, source) -> Generator[Any, Any, Any]:
-        """Generate a frame for the video server."""
+    async def serve_frame(self) -> Generator[Any, Any, Any]:
+        """Serve a frame to the video server."""
         while self.running:
-            frame = self.get_frame(source)
+            frame = await self.detector_service.process_frame()
             if frame is None:
                 continue
             ret, encoded_data = encode_image(frame)
             if ret:
                 byte_data = encoded_data.tobytes()
                 yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + byte_data + b'\r\n')
-
-    def get_frame(self, source) -> None | np.ndarray:
-        """Get frame from frame_bufer."""
-        with source.lock:
-            if len(source.frame_buffer) > 0:
-                print(f"detector buffer: {len(source.frame_buffer)}")
-                return source.frame_buffer.pop()
-            return None
 
     def run(self) -> None:
         """Runs the FastAPI server with uvicorn."""
