@@ -65,7 +65,7 @@ class ServerService(ServerInterface):
         """Serve a frame to the video server."""
         while self.running:
             frame = await self.detector_service.process_frame()
-            if frame is None:
+            if frame.size == 0:
                 continue
             ret, encoded_data = encode_image(frame)
             if ret:
